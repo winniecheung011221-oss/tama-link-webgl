@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root { --ink:#eef7f0; --green:#b8ff5f; --orange:#ffae59; --purple:#b784ff; --black:#040605; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--black); color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
+body { overflow-x:hidden; }
+button, a { font:inherit; }
+.hero { height:115vh; min-height:760px; position:relative; overflow:hidden; background:radial-gradient(circle at 68% 44%,rgba(133,255,90,.08),transparent 28%),#040605; }
+.hero:after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px); background-size:72px 72px; mask-image:linear-gradient(to bottom,transparent,#000 25%,transparent 86%); }
+.topbar { position:absolute; z-index:5; inset:30px 42px auto; display:flex; justify-content:space-between; align-items:center; font:600 11px/1 monospace; letter-spacing:.18em; }
+.brand { color:white; text-decoration:none; }.brand span{color:var(--green);text-shadow:0 0 16px var(--green)}.status{display:flex;gap:10px;align-items:center;color:#91a097}.status i{width:6px;height:6px;border-radius:50%;background:#5a625e}.status i.online{background:var(--green);box-shadow:0 0 12px var(--green)}
+.copy { position:absolute; z-index:3; left:7vw; top:27%; width:34vw; min-width:390px; transition:opacity .1s; pointer-events:none; }
+.eyebrow { color:#8c9a91; font:600 10px/1.4 monospace; letter-spacing:.28em; }
+h1 { margin:20px 0; color:#f3f7f4; font-size:clamp(64px,7.4vw,126px); line-height:.79; letter-spacing:-.075em; font-weight:800; }
+h1 em { color:transparent; -webkit-text-stroke:1px var(--green); font-style:normal; text-shadow:0 0 40px rgba(184,255,95,.1); }
+.lede { color:#98a39c; font-size:15px; line-height:1.7; max-width:330px; }
+.canvas-wrap { position:absolute; inset:0 -3vw 0 36vw; z-index:2; }
+.hint { position:absolute; z-index:5; bottom:10%; left:7vw; font:600 10px/1 monospace; letter-spacing:.2em; color:#7f8c84; display:flex; gap:12px; align-items:center; }
+.wheel { width:16px;height:25px;border:1px solid #58635c;border-radius:10px;position:relative}.wheel:after{content:"";position:absolute;width:2px;height:5px;background:var(--green);left:6px;top:5px;animation:scroll 1.4s infinite}@keyframes scroll{to{transform:translateY(8px);opacity:0}}
+.progress { position:absolute; z-index:5; left:0; right:0; bottom:0; height:2px; background:#142017; }.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--orange),var(--purple));transform-origin:left;box-shadow:0 0 14px var(--green)}
+.action-readout{position:absolute;z-index:6;right:6vw;bottom:12%;font:600 10px/1 monospace;letter-spacing:.18em;color:var(--green);opacity:0;transform:translateY(6px);transition:.2s}.action-readout[data-visible="true"]{opacity:1;transform:none}
+.home-section { min-height:82vh; padding:12vh 8vw; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:9vw; background:linear-gradient(135deg,#07100a,#050605 55%); border-top:1px solid #19221c; }
+.home-section h2 { white-space:pre-line; margin:20px 0 28px; font-size:clamp(42px,5vw,76px); line-height:.95; letter-spacing:-.05em; }
+.home-section>div>p:not(.eyebrow){color:#87928a;line-height:1.7;max-width:500px}.home-section button{margin-top:25px;color:var(--green);border:1px solid #324236;background:transparent;padding:13px 18px;font:600 10px monospace;letter-spacing:.17em;cursor:pointer}.home-section button:hover{background:var(--green);color:#071008}
+.signal-grid { border:1px solid #263229; }.signal-grid article{padding:28px 30px;border-bottom:1px solid #263229;display:grid;grid-template-columns:45px 1fr auto;align-items:center}.signal-grid article:last-child{border:0}.signal-grid span{font:10px monospace;color:#56625a}.signal-grid b{font:700 13px monospace;letter-spacing:.2em}.signal-grid p{font:11px monospace;color:#748078}
+@media(max-width:800px){.hero{min-height:700px}.topbar{inset:24px}.copy{left:24px;top:16%;min-width:0;width:85vw}.copy h1{font-size:58px}.canvas-wrap{inset:25% -28% 0 -2%}.hint{left:24px;bottom:6%}.home-section{grid-template-columns:1fr;padding:100px 24px}.status{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
