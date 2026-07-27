@@ -156,6 +156,18 @@ const careActions: Array<{ id: CareAction; icon: string; title: string; copy: st
   { id: "sleep", icon: "☾", title: "SLEEP", copy: "Rest and recharge" },
 ];
 
+function PetExpression({ index, className = "" }: { index: number; className?: string }) {
+  const column = index % 4;
+  const row = Math.floor(index / 4);
+  return (
+    <span
+      className={`pet-expression ${className}`}
+      style={{ backgroundPosition: `${column * 33.333}% ${row * 100}%` }}
+      aria-hidden="true"
+    />
+  );
+}
+
 function StarGame({ onClose }: { onClose: () => void }) {
   const [time, setTime] = useState(15);
   const [score, setScore] = useState(0);
@@ -200,7 +212,7 @@ function StarGame({ onClose }: { onClose: () => void }) {
           {time > 0 ? (
             <button key={star.id} className="catch-star" style={{ left: `${star.x}%`, top: `${star.y}%` }} onClick={catchStar} aria-label="Catch star">★</button>
           ) : (
-            <div className="game-result"><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
+            <div className="game-result"><PetExpression index={score >= 8 ? 2 : 1} className="result-expression" /><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
           )}
           <Image src="/reference/phase-two/pet-three-quarter.png" alt="" width={1024} height={1024} />
         </div>
@@ -454,7 +466,7 @@ function CareHub({ locale }: { locale: Locale }) {
           <div className="panel mood-panel">
             <div className="panel-title"><span>◉</span> {locale === "zh" ? "心情" : "MOOD"}</div>
             <p>{locale === "zh" ? (mood === "radiant" ? "闪闪发光" : mood === "content" ? "满足" : "好奇") : mood}</p>
-            <div className="pixel-face">ฅ^•ﻌ•^ฅ</div>
+            <PetExpression index={mood === "radiant" ? 2 : mood === "content" ? 1 : 5} className="mood-expression" />
             <small>Bond responds to every care action.</small>
           </div>
         </aside>
@@ -471,7 +483,8 @@ function CareHub({ locale }: { locale: Locale }) {
             </Canvas>
           </div>
           <div className="pet-message" data-visible={action !== "idle"}>
-            {lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}
+            <PetExpression index={lastCare === "feed" ? 3 : lastCare === "play" ? 2 : lastCare === "clean" ? 1 : lastCare === "sleep" ? 6 : 0} className="feedback-expression" />
+            <span>{lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}</span>
           </div>
           <div className="bond-card">
             <span>♥</span>
@@ -534,7 +547,7 @@ function CareHub({ locale }: { locale: Locale }) {
       {sleepOpen && <SleepChallenge onClose={() => setSleepOpen(false)} onComplete={(quality) => completeCare("sleep", quality)} />}
       {eventNotice && (
         <div className={`random-event ${eventNotice}`}>
-          <i>{eventNotice === "gift" ? "◆" : eventNotice === "meteor" ? "✦" : "◉"}</i>
+          <PetExpression index={eventNotice === "gift" ? 3 : eventNotice === "meteor" ? 4 : 5} className="event-expression" />
           <div><small>RARE SIGNAL DETECTED</small><b>{eventNotice === "gift" ? "MYSTERY GIFT" : eventNotice === "meteor" ? "PIXEL METEOR" : "TINY VISITOR"}</b><span>Bonus stardust · energy +12 · bond +2</span></div>
           <button onClick={() => setEventNotice(null)} aria-label="Dismiss event">×</button>
         </div>
