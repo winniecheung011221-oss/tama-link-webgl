@@ -3,14 +3,32 @@ import { persist } from "zustand/middleware";
 import { SCENE } from "../config/experience";
 
 export type PetAction = "idle" | "call" | "play" | "feel";
+export type CareAction = "feed" | "play" | "clean" | "sleep";
+export type Charm = "lucky-star" | "glow-cube";
+
+export type PetStats = {
+  hunger: number;
+  fun: number;
+  clean: number;
+  sleep: number;
+};
+
 type TamaState = {
   awake: boolean;
   action: PetAction;
+  lastCare: CareAction | null;
+  stats: PetStats;
+  bond: number;
+  stardust: number;
+  equippedCharm: Charm;
   wake: () => void;
   trigger: (action: PetAction) => void;
+  care: (action: CareAction) => void;
+  equipCharm: (charm: Charm) => void;
   reset: () => void;
 };
 
+const initialStats: PetStats = { hunger: 72, fun: 86, clean: 68, sleep: 44 };
 let actionTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useTamaStore = create<TamaState>()(
@@ -18,6 +36,11 @@ export const useTamaStore = create<TamaState>()(
     (set, get) => ({
       awake: false,
       action: "idle",
+      lastCare: null,
+      stats: initialStats,
+      bond: 64,
+      stardust: 1240,
+      equippedCharm: "lucky-star",
       wake: () => set({ awake: true }),
       trigger: (action) => {
         if (action === "idle" || get().action !== "idle") return;
@@ -25,8 +48,43 @@ export const useTamaStore = create<TamaState>()(
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
       },
-      reset: () => set({ awake: false, action: "idle" }),
+      care: (careAction) => {
+        const current = get();
+        if (current.action !== "idle") return;
+        const delta: Record<CareAction, Partial<PetStats>> = {
+          feed: { hunger: 18 },
+          play: { fun: 14, sleep: -4 },
+          clean: { clean: 22 },
+          sleep: { sleep: 24, hunger: -3 },
+        };
+        const nextStats = { ...current.stats };
+        Object.entries(delta[careAction]).forEach(([key, value]) => {
+          const stat = key as keyof PetStats;
+          nextStats[stat] = Math.max(0, Math.min(100, nextStats[stat] + (value ?? 0)));
+        });
+        set({
+          awake: true,
+          action: careAction === "play" ? "play" : careAction === "feed" ? "call" : "feel",
+          lastCare: careAction,
+          stats: nextStats,
+          bond: Math.min(100, current.bond + 3),
+          stardust: current.stardust + 25,
+        });
+        clearTimeout(actionTimer);
+        actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
+      },
+      equipCharm: (equippedCharm) => set({ equippedCharm }),
+      reset: () =>
+        set({
+          awake: false,
+          action: "idle",
+          lastCare: null,
+          stats: initialStats,
+          bond: 64,
+          stardust: 1240,
+          equippedCharm: "lucky-star",
+        }),
     }),
-    { name: "tama-link-phase-one" },
+    { name: "tama-link-phase-two" },
   ),
 );

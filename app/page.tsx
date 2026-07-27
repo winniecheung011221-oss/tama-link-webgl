@@ -4,7 +4,8 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Float, RoundedBox, Sparkles } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { useTamaStore, type PetAction } from "../src/store/tamaStore";
+import Image from "next/image";
+import { useTamaStore, type CareAction, type PetAction } from "../src/store/tamaStore";
 import { SCENE, THEME } from "../src/config/experience";
 
 const buttonMap: Array<{ key: PetAction; color: string; x: number; label: string }> = [
@@ -141,6 +142,127 @@ function Scene({ progress }: { progress: number }) {
   );
 }
 
+const careActions: Array<{ id: CareAction; icon: string; title: string; copy: string }> = [
+  { id: "feed", icon: "♜", title: "FEED", copy: "Fill that tiny tummy" },
+  { id: "play", icon: "◇", title: "PLAY", copy: "Turn energy into joy" },
+  { id: "clean", icon: "✦", title: "CLEAN", copy: "Fresh fur, clear signal" },
+  { id: "sleep", icon: "☾", title: "SLEEP", copy: "Rest and recharge" },
+];
+
+function CareHub() {
+  const stats = useTamaStore((s) => s.stats);
+  const bond = useTamaStore((s) => s.bond);
+  const stardust = useTamaStore((s) => s.stardust);
+  const lastCare = useTamaStore((s) => s.lastCare);
+  const action = useTamaStore((s) => s.action);
+  const equippedCharm = useTamaStore((s) => s.equippedCharm);
+  const care = useTamaStore((s) => s.care);
+  const equipCharm = useTamaStore((s) => s.equipCharm);
+  const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
+  const statRows = [
+    ["HUNGER", stats.hunger],
+    ["FUN", stats.fun],
+    ["CLEAN", stats.clean],
+    ["SLEEP", stats.sleep],
+  ] as const;
+
+  return (
+    <section className="care-hub" id="pet-home">
+      <div className="hub-heading">
+        <div>
+          <p className="eyebrow">PET HOME · LIVE CARE LOOP</p>
+          <h2>Meet <span>Meowchi.</span></h2>
+        </div>
+        <div className="currency"><i /> {stardust.toLocaleString()} <small>STARDUST</small></div>
+      </div>
+
+      <div className="hub-layout">
+        <aside className="hub-column">
+          <div className="panel status-panel">
+            <div className="panel-title"><span>♡</span> STATUS <small>LIVE</small></div>
+            {statRows.map(([label, value]) => (
+              <div className="stat-row" key={label}>
+                <b>{label}</b>
+                <div className="stat-track"><span style={{ width: `${value}%` }} /></div>
+                <strong>{value}%</strong>
+              </div>
+            ))}
+          </div>
+          <div className="panel mood-panel">
+            <div className="panel-title"><span>◉</span> MOOD</div>
+            <p>{mood}</p>
+            <div className="pixel-face">ฅ^•ﻌ•^ฅ</div>
+            <small>Bond responds to every care action.</small>
+          </div>
+        </aside>
+
+        <div className="pet-stage">
+          <div className={`pet-aura ${action !== "idle" ? "active" : ""}`} />
+          <Image
+            src={lastCare === "play" ? "/reference/phase-two/pet-three-quarter.png" : lastCare === "sleep" ? "/reference/phase-two/pet-side.png" : "/reference/phase-two/pet-front.png"}
+            alt="Meowchi, a soft lime-green cat companion"
+            width={1024}
+            height={1024}
+            priority
+          />
+          <div className="pet-message" data-visible={action !== "idle"}>
+            {lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}
+          </div>
+          <div className="bond-card">
+            <span>♥</span>
+            <div><small>BOND LV. 04</small><div className="bond-track"><i style={{ width: `${bond}%` }} /></div></div>
+            <strong>{bond}%</strong>
+          </div>
+        </div>
+
+        <aside className="hub-column right">
+          <div className="panel charms-panel">
+            <div className="panel-title"><span>⌁</span> CHARMS <small>2 / 2</small></div>
+            <div className="charm-grid">
+              <button className={equippedCharm === "lucky-star" ? "selected" : ""} onClick={() => equipCharm("lucky-star")}>
+                <b>★</b><span>Lucky Star</span><small>{equippedCharm === "lucky-star" ? "EQUIPPED" : "EQUIP"}</small>
+              </button>
+              <button className={equippedCharm === "glow-cube" ? "selected" : ""} onClick={() => equipCharm("glow-cube")}>
+                <b>♥</b><span>Glow Cube</span><small>{equippedCharm === "glow-cube" ? "EQUIPPED" : "EQUIP"}</small>
+              </button>
+            </div>
+          </div>
+          <div className="panel actions-panel">
+            <div className="panel-title"><span>↳</span> CARE ACTIONS</div>
+            {careActions.map((item) => (
+              <button key={item.id} onClick={() => care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
+                <i>{item.icon}</i><span><b>{item.title}</b><small>{item.copy}</small></span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function ProductStory() {
+  return (
+    <section className="product-story">
+      <div className="story-copy">
+        <p className="eyebrow">OBJECT 01 · DESIGNED FOR CONNECTION</p>
+        <h2>Transparent,<br />tactile, <span>alive.</span></h2>
+        <p>The shell reveals the technology inside while three color-coded buttons turn care into a physical ritual. Every press has a different emotional response.</p>
+        <div className="material-list">
+          <span><i className="swatch shell" /> TRANSPARENT PC</span>
+          <span><i className="swatch lime" /> LIME SIGNAL</span>
+          <span><i className="swatch amber" /> AMBER PLAY</span>
+          <span><i className="swatch violet" /> VIOLET FEEL</span>
+        </div>
+      </div>
+      <div className="device-gallery">
+        <Image src="/reference/phase-two/device-back-reference.png" alt="TAMA LINK transparent device back view" width={1024} height={1365} />
+        <div className="gallery-label"><span>360° OBJECT STUDY</span><small>MODEL IN PRODUCTION</small></div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [target, setTarget] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -198,11 +320,13 @@ export default function Home() {
         <div className="action-readout" data-visible={action !== "idle"}>{action === "call" ? "CALL · COMING CLOSER" : action === "play" ? "PLAY · HAPPY JUMP" : action === "feel" ? "FEEL · MOOD SIGNAL" : ""}</div>
         <div className="progress"><span style={{ transform: `scaleX(${progress})` }} /></div>
       </section>
+      <CareHub />
+      <ProductStory />
       <section className="home-section">
         <div>
-          <p className="eyebrow">PET HOME · PHASE 01 PREVIEW</p>
-          <h2>{awake ? "Good morning,\nwe’re linked." : "Tap the screen\nto wake your pet."}</h2>
-          <p>The formal room, care loops, and collectible charms will plug into this scene in the next phase.</p>
+          <p className="eyebrow">PHASE 02 · SYSTEM READY</p>
+          <h2>{awake ? "Your care loop\nis now active." : "Tap the screen\nto wake your pet."}</h2>
+          <p>Feed, play, clean and rest now update Meowchi’s persistent state. Formal 3D models can replace the visual layer without rewriting this loop.</p>
           <button onClick={reset}>RESET LINK</button>
         </div>
         <div className="signal-grid">
