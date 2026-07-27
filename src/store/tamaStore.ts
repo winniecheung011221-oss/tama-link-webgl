@@ -4,7 +4,7 @@ import { SCENE } from "../config/experience";
 
 export type PetAction = "idle" | "call" | "play" | "feel";
 export type CareAction = "feed" | "play" | "clean" | "sleep";
-export type Charm = "lucky-star" | "glow-cube";
+export type Charm = "lucky-star" | "glow-cube" | "rainy-day";
 
 export type PetStats = {
   hunger: number;
@@ -21,10 +21,15 @@ type TamaState = {
   bond: number;
   stardust: number;
   equippedCharm: Charm;
+  careCount: number;
+  gameBest: number;
+  dailyClaimed: boolean;
   wake: () => void;
   trigger: (action: PetAction) => void;
   care: (action: CareAction) => void;
   equipCharm: (charm: Charm) => void;
+  finishGame: (score: number) => void;
+  claimDaily: () => void;
   reset: () => void;
 };
 
@@ -41,6 +46,9 @@ export const useTamaStore = create<TamaState>()(
       bond: 64,
       stardust: 1240,
       equippedCharm: "lucky-star",
+      careCount: 0,
+      gameBest: 0,
+      dailyClaimed: false,
       wake: () => set({ awake: true }),
       trigger: (action) => {
         if (action === "idle" || get().action !== "idle") return;
@@ -69,11 +77,33 @@ export const useTamaStore = create<TamaState>()(
           stats: nextStats,
           bond: Math.min(100, current.bond + 3),
           stardust: current.stardust + 25,
+          careCount: current.careCount + 1,
         });
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
       },
-      equipCharm: (equippedCharm) => set({ equippedCharm }),
+      equipCharm: (equippedCharm) => {
+        if (equippedCharm === "rainy-day" && get().gameBest < 8) return;
+        set({ equippedCharm });
+      },
+      finishGame: (score) => {
+        const current = get();
+        set({
+          action: "play",
+          lastCare: "play",
+          gameBest: Math.max(current.gameBest, score),
+          stardust: current.stardust + score * 12,
+          bond: Math.min(100, current.bond + Math.max(1, Math.floor(score / 2))),
+          stats: { ...current.stats, fun: Math.min(100, current.stats.fun + score * 2) },
+        });
+        clearTimeout(actionTimer);
+        actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
+      },
+      claimDaily: () => {
+        const current = get();
+        if (current.dailyClaimed || current.careCount < 3 || current.gameBest < 5) return;
+        set({ dailyClaimed: true, stardust: current.stardust + 250, bond: Math.min(100, current.bond + 5) });
+      },
       reset: () =>
         set({
           awake: false,
@@ -83,6 +113,9 @@ export const useTamaStore = create<TamaState>()(
           bond: 64,
           stardust: 1240,
           equippedCharm: "lucky-star",
+          careCount: 0,
+          gameBest: 0,
+          dailyClaimed: false,
         }),
     }),
     { name: "tama-link-phase-two" },

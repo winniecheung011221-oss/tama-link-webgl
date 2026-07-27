@@ -149,7 +149,56 @@ const careActions: Array<{ id: CareAction; icon: string; title: string; copy: st
   { id: "sleep", icon: "☾", title: "SLEEP", copy: "Rest and recharge" },
 ];
 
+function StarGame({ onClose }: { onClose: () => void }) {
+  const [time, setTime] = useState(15);
+  const [score, setScore] = useState(0);
+  const [star, setStar] = useState({ x: 50, y: 45, id: 0 });
+  const finishGame = useTamaStore((s) => s.finishGame);
+  const finished = useRef(false);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTime((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (time > 0 || finished.current) return;
+    finished.current = true;
+    finishGame(score);
+  }, [time, score, finishGame]);
+
+  const catchStar = () => {
+    if (time === 0) return;
+    setScore((value) => value + 1);
+    setStar((current) => ({
+      x: 12 + Math.random() * 76,
+      y: 16 + Math.random() * 64,
+      id: current.id + 1,
+    }));
+  };
+
+  return (
+    <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Catch the signal mini game">
+      <div className="game-window">
+        <header><div><p className="eyebrow">PLAY MODE · SIGNAL CATCH</p><h3>{time > 0 ? "Catch the stars." : "Signal complete!"}</h3></div><button onClick={onClose} aria-label="Close game">×</button></header>
+        <div className="game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>SCORE <b>{String(score).padStart(2, "0")}</b></span><span>REWARD <b>+{score * 12}</b></span></div>
+        <div className="playfield">
+          <div className="scanline" />
+          {time > 0 ? (
+            <button key={star.id} className="catch-star" style={{ left: `${star.x}%`, top: `${star.y}%` }} onClick={catchStar} aria-label="Catch star">★</button>
+          ) : (
+            <div className="game-result"><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
+          )}
+          <Image src="/reference/phase-two/pet-three-quarter.png" alt="" width={1024} height={1024} />
+        </div>
+        <footer>CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND</footer>
+      </div>
+    </div>
+  );
+}
+
 function CareHub() {
+  const [gameOpen, setGameOpen] = useState(false);
   const stats = useTamaStore((s) => s.stats);
   const bond = useTamaStore((s) => s.bond);
   const stardust = useTamaStore((s) => s.stardust);
@@ -158,6 +207,10 @@ function CareHub() {
   const equippedCharm = useTamaStore((s) => s.equippedCharm);
   const care = useTamaStore((s) => s.care);
   const equipCharm = useTamaStore((s) => s.equipCharm);
+  const careCount = useTamaStore((s) => s.careCount);
+  const gameBest = useTamaStore((s) => s.gameBest);
+  const dailyClaimed = useTamaStore((s) => s.dailyClaimed);
+  const claimDaily = useTamaStore((s) => s.claimDaily);
   const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
   const statRows = [
     ["HUNGER", stats.hunger],
@@ -225,18 +278,28 @@ function CareHub() {
               <button className={equippedCharm === "glow-cube" ? "selected" : ""} onClick={() => equipCharm("glow-cube")}>
                 <b>♥</b><span>Glow Cube</span><small>{equippedCharm === "glow-cube" ? "EQUIPPED" : "EQUIP"}</small>
               </button>
+              <button className={`${equippedCharm === "rainy-day" ? "selected" : ""} ${gameBest < 8 ? "locked" : ""}`} onClick={() => equipCharm("rainy-day")}>
+                <b>☂</b><span>Rainy Day</span><small>{gameBest < 8 ? `${gameBest}/8 STARS` : equippedCharm === "rainy-day" ? "EQUIPPED" : "UNLOCKED"}</small>
+              </button>
             </div>
           </div>
           <div className="panel actions-panel">
             <div className="panel-title"><span>↳</span> CARE ACTIONS</div>
             {careActions.map((item) => (
-              <button key={item.id} onClick={() => care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
+              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
                 <i>{item.icon}</i><span><b>{item.title}</b><small>{item.copy}</small></span>
               </button>
             ))}
           </div>
         </aside>
       </div>
+      <div className="daily-strip">
+        <div><p className="eyebrow">DAILY LINK · 01</p><h3>Complete today’s care signal.</h3></div>
+        <div className={careCount >= 3 ? "done" : ""}><span>01</span><b>CARE ×3</b><small>{Math.min(careCount, 3)} / 3</small></div>
+        <div className={gameBest >= 5 ? "done" : ""}><span>02</span><b>CATCH ×5</b><small>{Math.min(gameBest, 5)} / 5</small></div>
+        <button disabled={dailyClaimed || careCount < 3 || gameBest < 5} onClick={claimDaily}>{dailyClaimed ? "CLAIMED ✓" : "CLAIM +250"}</button>
+      </div>
+      {gameOpen && <StarGame onClose={() => setGameOpen(false)} />}
     </section>
   );
 }
