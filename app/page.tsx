@@ -15,56 +15,6 @@ const buttonMap: Array<{ key: PetAction; color: string; x: number; label: string
   { key: "feel", color: THEME.purple, x: 0.72, label: "FEEL" },
 ];
 
-function Pet({ action }: { action: PetAction }) {
-  const group = useRef<THREE.Group>(null);
-  useFrame(({ clock }, delta) => {
-    if (!group.current) return;
-    const t = clock.elapsedTime;
-    group.current.rotation.z = THREE.MathUtils.damp(
-      group.current.rotation.z,
-      action === "feel" ? Math.sin(t * 10) * 0.18 : 0,
-      10,
-      delta,
-    );
-    group.current.position.y = THREE.MathUtils.damp(
-      group.current.position.y,
-      action === "play" ? Math.abs(Math.sin(t * 8)) * 0.25 : action === "call" ? 0.08 : 0,
-      12,
-      delta,
-    );
-    const s = action === "call" ? 1.1 : 1;
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, s, 10, delta));
-  });
-  return (
-    <group ref={group} position={[0, 0.22, 0.32]}>
-      <mesh position={[0, 0.15, 0]}>
-        <sphereGeometry args={[0.55, 40, 40]} />
-        <meshStandardMaterial color="#b7ff6a" roughness={0.78} />
-      </mesh>
-      <mesh position={[-0.32, 0.56, 0]} rotation={[0, 0, -0.28]}>
-        <coneGeometry args={[0.19, 0.48, 24]} />
-        <meshStandardMaterial color="#b7ff6a" roughness={0.8} />
-      </mesh>
-      <mesh position={[0.32, 0.56, 0]} rotation={[0, 0, 0.28]}>
-        <coneGeometry args={[0.19, 0.48, 24]} />
-        <meshStandardMaterial color="#b7ff6a" roughness={0.8} />
-      </mesh>
-      {[-0.19, 0.19].map((x) => (
-        <mesh key={x} position={[x, 0.23, 0.51]}>
-          <sphereGeometry args={[0.055, 20, 20]} />
-          <meshBasicMaterial color="#091108" />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.03, 0.53]} scale={[1.4, 0.6, 0.4]}>
-        <sphereGeometry args={[0.055, 20, 20]} />
-        <meshBasicMaterial color="#ff9bb8" />
-      </mesh>
-      <mesh position={[-0.42, -0.05, 0.42]}><sphereGeometry args={[0.1, 20, 20]} /><meshBasicMaterial color="#ff9bb8" transparent opacity={0.75} /></mesh>
-      <mesh position={[0.42, -0.05, 0.42]}><sphereGeometry args={[0.1, 20, 20]} /><meshBasicMaterial color="#ff9bb8" transparent opacity={0.75} /></mesh>
-    </group>
-  );
-}
-
 class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
@@ -132,7 +82,6 @@ function FormalDeviceModel() {
 function Device({ progress }: { progress: number }) {
   const group = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
-  const action = useTamaStore((s) => s.action);
   const wake = useTamaStore((s) => s.wake);
   useFrame(({ pointer }, delta) => {
     if (!group.current) return;
@@ -152,7 +101,6 @@ function Device({ progress }: { progress: number }) {
         <planeGeometry args={[1.86, 1.62]} />
         <meshBasicMaterial color="#071008" transparent opacity={0.05} />
       </mesh>
-      <group scale={0.62} position={[0.12, 0.38, 0.58]}><Pet action={action} /></group>
       {progress > 0.55 && buttonMap.map((item) => (
         <ModelErrorBoundary key={item.key} fallback={<></>}>
           <Suspense fallback={null}><DeviceButton item={item} enabled={progress > 0.64} /></Suspense>
@@ -167,12 +115,15 @@ function Scene({ progress }: { progress: number }) {
     <>
       <color attach="background" args={[THEME.background]} />
       <fog attach="fog" args={[THEME.background, 7, 14]} />
-      <ambientLight intensity={0.75} />
-      <spotLight position={[-4, 6, 6]} intensity={55} color={THEME.green} angle={0.35} penumbra={1} />
-      <spotLight position={[5, 0, 4]} intensity={35} color={THEME.purple} angle={0.5} penumbra={1} />
+      <ambientLight intensity={0.48} color="#dfffd1" />
+      <directionalLight position={[-3, 5, 4]} intensity={2.8} color="#f6fff0" />
+      <spotLight position={[-5, 5, 5]} intensity={78} color={THEME.green} angle={0.34} penumbra={0.92} />
+      <spotLight position={[5, 2, 3]} intensity={58} color={THEME.purple} angle={0.46} penumbra={1} />
+      <pointLight position={[0, -2.2, 3.5]} intensity={18} color={THEME.orange} distance={7} />
+      <pointLight position={[0, 1.2, 4]} intensity={12} color="#d9ffb8" distance={5} />
       <Sparkles count={60} scale={[8, 6, 5]} size={1.2} speed={0.25} color={THEME.green} opacity={0.28} />
       <Float speed={1.2} rotationIntensity={0.08} floatIntensity={0.16}><Device progress={progress} /></Float>
-      <Environment preset="city" />
+      <Environment preset="city" environmentIntensity={0.72} />
     </>
   );
 }
@@ -393,6 +344,82 @@ function CareHub() {
   );
 }
 
+function PixelCursor() {
+  const cursor = useRef<HTMLDivElement>(null);
+  const [pixels, setPixels] = useState<Array<{ x: number; y: number; id: number }>>([]);
+  const last = useRef(0);
+  useEffect(() => {
+    let id = 0;
+    const move = (event: PointerEvent) => {
+      if (cursor.current) cursor.current.style.transform = `translate3d(${event.clientX}px,${event.clientY}px,0)`;
+      const now = performance.now();
+      if (now - last.current < 38) return;
+      last.current = now;
+      const point = { x: event.clientX, y: event.clientY, id: id++ };
+      setPixels((current) => [...current.slice(-9), point]);
+      window.setTimeout(() => setPixels((current) => current.filter((item) => item.id !== point.id)), 420);
+    };
+    window.addEventListener("pointermove", move);
+    return () => window.removeEventListener("pointermove", move);
+  }, []);
+  return (
+    <div className="pixel-cursor-layer" aria-hidden="true">
+      {pixels.map((pixel, index) => <i key={pixel.id} style={{ left: pixel.x, top: pixel.y, opacity: (index + 1) / pixels.length }} />)}
+      <div ref={cursor} className="pixel-cursor"><span /></div>
+    </div>
+  );
+}
+
+function RoomEnvironmentModel() {
+  const { scene } = useGLTF(ASSETS.scenes.petHomeBlack);
+  const model = useMemo(() => scene.clone(true), [scene]);
+  return <group scale={7.2} position={[0, -1.35, 0]} rotation={[0, -0.16, 0]}><Center bottom><primitive object={model} /></Center></group>;
+}
+
+function RoomPetModel() {
+  const { scene } = useGLTF(ASSETS.pet.primary);
+  const model = useMemo(() => scene.clone(true), [scene]);
+  const group = useRef<THREE.Group>(null);
+  useFrame(({ clock }, delta) => {
+    if (!group.current) return;
+    group.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.13;
+    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, -1.1 + Math.sin(clock.elapsedTime * 1.5) * 0.025, 4, delta);
+  });
+  return <group ref={group} scale={2.15} position={[0.15, -1.1, 0.75]}><Center bottom><primitive object={model} /></Center></group>;
+}
+
+function PetRoom() {
+  const [theme, setTheme] = useState<"lab" | "night" | "garden">("night");
+  const lighting = {
+    lab: { key: "#c9ecff", fill: "#b8ff5f", label: "PIXEL LAB" },
+    night: { key: "#aa7be4", fill: "#8bbdff", label: "SOFT NIGHT" },
+    garden: { key: "#b8ff5f", fill: "#ffe180", label: "LIME GARDEN" },
+  }[theme];
+  return (
+    <section className={`pet-room theme-${theme}`} id="room">
+      <div className="room-head">
+        <div><p className="eyebrow">ROOM · LIVE 3D SPACE</p><h2>Meowchi’s little world.</h2></div>
+        <div className="theme-switcher">
+          {(["lab", "night", "garden"] as const).map((item) => <button key={item} className={theme === item ? "active" : ""} onClick={() => setTheme(item)}>{item === "lab" ? "PIXEL LAB" : item === "night" ? "SOFT NIGHT" : "LIME GARDEN"}</button>)}
+        </div>
+      </div>
+      <div className="room-stage">
+        <Canvas camera={{ position: [0, 1.1, 6.2], fov: 38 }} dpr={[1, 1.5]}>
+          <color attach="background" args={["#020403"]} />
+          <ambientLight intensity={0.58} color={lighting.fill} />
+          <spotLight position={[-4, 6, 4]} intensity={50} color={lighting.key} angle={0.48} penumbra={1} />
+          <spotLight position={[5, 2, 3]} intensity={30} color={lighting.fill} angle={0.45} penumbra={1} />
+          <pointLight position={[0, 0.2, 2]} intensity={14} color={lighting.fill} distance={5} />
+          <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><RoomEnvironmentModel /><RoomPetModel /></Suspense></ModelErrorBoundary>
+          <Environment preset="night" environmentIntensity={0.45} />
+        </Canvas>
+        <div className="room-badge"><i /> {lighting.label}<small>MODEL SPACE ACTIVE</small></div>
+        <div className="room-controls"><span>DRAG TO LOOK</span><span>THEME SAVED LOCALLY</span></div>
+      </div>
+    </section>
+  );
+}
+
 function ProductStory() {
   return (
     <section className="product-story">
@@ -455,6 +482,7 @@ export default function Home() {
 
   return (
     <main>
+      <PixelCursor />
       <section className="hero">
         <header className="topbar">
           <a className="brand" href="#top" aria-label="TAMA LINK home"><span>●</span> TAMA LINK</a>
@@ -473,6 +501,7 @@ export default function Home() {
         <div className="progress"><span style={{ transform: `scaleX(${progress})` }} /></div>
       </section>
       <CareHub />
+      <PetRoom />
       <ProductStory />
       <section className="home-section">
         <div>

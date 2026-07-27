@@ -2,8 +2,8 @@ export const ASSETS = {
   device: {
     full: {
       url: "/models/device/tama-device-full.glb",
-      scale: 4.25,
-      position: [0.28, -0.15, 0] as [number, number, number],
+      scale: 3.25,
+      position: [0.12, -0.12, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     buttons: {
@@ -22,6 +22,9 @@ export const ASSETS = {
     strawberry: "/models/props/food-strawberry.glb",
     pudding: "/models/props/food-pudding.glb",
     star: "/models/props/charm-star.glb",
+  },
+  scenes: {
+    petHomeBlack: "/models/scenes/pet-home-black.glb",
   },
 } as const;
 
