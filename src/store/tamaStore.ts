@@ -5,6 +5,7 @@ import { SCENE } from "../config/experience";
 export type PetAction = "idle" | "call" | "play" | "feel";
 export type CareAction = "feed" | "play" | "clean" | "sleep";
 export type Charm = "lucky-star" | "glow-cube" | "rainy-day";
+export type RandomEvent = "gift" | "meteor" | "visitor";
 
 export type PetStats = {
   hunger: number;
@@ -28,9 +29,12 @@ type TamaState = {
   careCombo: number;
   request: CareAction;
   memories: number;
+  eventCount: number;
+  lastEvent: RandomEvent | null;
   wake: () => void;
   trigger: (action: PetAction) => void;
-  care: (action: CareAction) => void;
+  care: (action: CareAction, quality?: number) => void;
+  triggerRandomEvent: (event: RandomEvent) => void;
   equipCharm: (charm: Charm) => void;
   finishGame: (score: number) => void;
   claimDaily: () => void;
@@ -58,6 +62,8 @@ export const useTamaStore = create<TamaState>()(
       careCombo: 0,
       request: "feed",
       memories: 0,
+      eventCount: 0,
+      lastEvent: null,
       wake: () => set({ awake: true }),
       trigger: (action) => {
         if (action === "idle" || get().action !== "idle") return;
@@ -65,9 +71,10 @@ export const useTamaStore = create<TamaState>()(
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
       },
-      care: (careAction) => {
+      care: (careAction, rawQuality = 1) => {
         const current = get();
         if (current.action !== "idle") return;
+        const quality = Math.max(0.5, Math.min(1.5, rawQuality));
         const requestOrder: CareAction[] = ["feed", "play", "clean", "sleep"];
         const requestMatched = current.request === careAction;
         const combo = current.lastCare && current.lastCare !== careAction ? Math.min(4, current.careCombo + 1) : 1;
@@ -87,15 +94,26 @@ export const useTamaStore = create<TamaState>()(
           action: careAction === "play" ? "play" : careAction === "feed" ? "call" : "feel",
           lastCare: careAction,
           stats: nextStats,
-          bond: Math.min(100, current.bond + (requestMatched ? 5 : 3)),
-          stardust: current.stardust + 25 + combo * 5,
+          bond: Math.min(100, current.bond + Math.round((requestMatched ? 5 : 3) * quality)),
+          stardust: current.stardust + Math.round((25 + combo * 5) * quality),
           careCount: current.careCount + 1,
           careCombo: combo,
-          signalEnergy: Math.min(100, current.signalEnergy + (requestMatched ? 34 : 18) + combo * 3),
+          signalEnergy: Math.min(100, current.signalEnergy + Math.round(((requestMatched ? 34 : 18) + combo * 3) * quality)),
           request: requestMatched ? requestOrder[(requestOrder.indexOf(careAction) + 1) % requestOrder.length] : current.request,
         });
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
+      },
+      triggerRandomEvent: (lastEvent) => {
+        const current = get();
+        const reward = lastEvent === "meteor" ? 90 : lastEvent === "gift" ? 65 : 50;
+        set({
+          lastEvent,
+          eventCount: current.eventCount + 1,
+          stardust: current.stardust + reward,
+          signalEnergy: Math.min(100, current.signalEnergy + 12),
+          bond: Math.min(100, current.bond + 2),
+        });
       },
       equipCharm: (equippedCharm) => {
         if (equippedCharm === "rainy-day" && get().gameBest < 8) return;
@@ -154,6 +172,8 @@ export const useTamaStore = create<TamaState>()(
           careCombo: 0,
           request: "feed",
           memories: 0,
+          eventCount: 0,
+          lastEvent: null,
         }),
     }),
     { name: "tama-link-phase-two" },

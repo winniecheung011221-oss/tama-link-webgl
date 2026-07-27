@@ -208,22 +208,118 @@ function PropModel({ url }: { url: string }) {
   return <group ref={group} scale={1.15}><Center><primitive object={model} /></Center></group>;
 }
 
-function FoodPicker({ onChoose, onClose }: { onChoose: () => void; onClose: () => void }) {
+function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
   const foods = [
-    { name: "STRAWBERRY", note: "+18 hunger · +3 bond", url: ASSETS.props.strawberry },
-    { name: "PUDDING", note: "+18 hunger · +3 bond", url: ASSETS.props.pudding },
+    { name: "STRAWBERRY", note: "Bright + playful", url: ASSETS.props.strawberry },
+    { name: "PUDDING", note: "Soft + comforting", url: ASSETS.props.pudding },
   ];
+  const [selected, setSelected] = useState<(typeof foods)[number] | null>(null);
+  const [quality, setQuality] = useState<number | null>(null);
+  const started = useRef(0);
+  useEffect(() => {
+    if (selected) started.current = performance.now();
+  }, [selected]);
+  const stopMeter = () => {
+    const phase = ((performance.now() - started.current) % 2200) / 2200;
+    const position = phase <= 0.5 ? phase * 200 : (1 - phase) * 200;
+    setQuality(Math.max(0.5, 1.5 - Math.abs(position - 50) / 50));
+  };
   return (
-    <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Choose food">
+    <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Feed timing challenge">
       <div className="food-window">
-        <header><div><p className="eyebrow">FEED MODE · PANTRY</p><h3>Choose a treat.</h3></div><button onClick={onClose} aria-label="Close food picker">×</button></header>
-        <div className="food-grid">
-          {foods.map((food) => (
-            <button key={food.name} onClick={onChoose}>
-              <div className="food-model"><Canvas camera={{ position: [0, 0, 4.5], fov: 36 }} dpr={[1, 1.4]}><ambientLight intensity={1.5} color="#fff6e8" /><spotLight position={[3, 4, 4]} intensity={8} color="#fff0d0" /><Suspense fallback={null}><PropModel url={food.url} /></Suspense></Canvas></div>
-              <b>{food.name}</b><small>{food.note}</small><span>GIVE TO MEOWCHI →</span>
-            </button>
-          ))}
+        <header><div><p className="eyebrow">FEED MODE · SWEET SPOT</p><h3>{selected ? "Serve it just right." : "Choose a treat."}</h3></div><button onClick={onClose} aria-label="Close food picker">×</button></header>
+        {!selected ? (
+          <div className="food-grid">
+            {foods.map((food) => (
+              <button key={food.name} onClick={() => setSelected(food)}>
+                <div className="food-model"><Canvas camera={{ position: [0, 0, 4.5], fov: 36 }} dpr={[1, 1.4]}><ambientLight intensity={1.5} color="#fff6e8" /><spotLight position={[3, 4, 4]} intensity={8} color="#fff0d0" /><Suspense fallback={null}><PropModel url={food.url} /></Suspense></Canvas></div>
+                <b>{food.name}</b><small>{food.note}</small><span>SELECT TREAT →</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="timing-challenge">
+            <div className="selected-food"><div className="food-model"><Canvas camera={{ position: [0, 0, 4.5], fov: 36 }} dpr={[1, 1.4]}><ambientLight intensity={1.5} /><spotLight position={[3, 4, 4]} intensity={8} color="#fff0d0" /><Suspense fallback={null}><PropModel url={selected.url} /></Suspense></Canvas></div><b>{selected.name}</b></div>
+            <div className="timing-panel">
+              <p>STOP THE SIGNAL INSIDE THE LIME ZONE</p>
+              <div className={`timing-meter ${quality !== null ? "stopped" : ""}`}><i /><span /></div>
+              {quality === null ? <button onClick={stopMeter}>LOCK SERVE TIMING</button> : <div className="challenge-result"><strong>{quality > 1.28 ? "PERFECT SERVE!" : quality > .9 ? "NICE TIMING" : "MESSY, BUT TASTY"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>GIVE TO MEOWCHI</button></div>}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const cleanSpots = [
+  { left: 20, top: 28 }, { left: 72, top: 22 }, { left: 48, top: 38 },
+  { left: 30, top: 63 }, { left: 66, top: 68 }, { left: 50, top: 82 },
+];
+
+function CleanChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
+  const [remaining, setRemaining] = useState(cleanSpots.map((_, index) => index));
+  const [time, setTime] = useState(12);
+  const [quality, setQuality] = useState<number | null>(null);
+  const remainingCount = useRef(cleanSpots.length);
+  useEffect(() => {
+    if (quality !== null) return;
+    const timer = window.setInterval(() => setTime((value) => {
+      if (value <= 1) {
+        window.clearInterval(timer);
+        setQuality(0.5 + (cleanSpots.length - remainingCount.current) / 12);
+        return 0;
+      }
+      return value - 1;
+    }), 1000);
+    return () => window.clearInterval(timer);
+  }, [quality]);
+  const clearSpot = (index: number) => {
+    const next = remaining.filter((item) => item !== index);
+    remainingCount.current = next.length;
+    setRemaining(next);
+    if (next.length === 0) setQuality(Math.min(1.5, 1 + time / 24));
+  };
+  return (
+    <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Clean pet challenge">
+      <div className="care-game-window">
+        <header><div><p className="eyebrow">CLEAN MODE · SIGNAL POLISH</p><h3>Tap every glitch spot.</h3></div><button onClick={onClose} aria-label="Close clean game">×</button></header>
+        <div className="care-game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>CLEARED <b>{cleanSpots.length - remaining.length}/{cleanSpots.length}</b></span></div>
+        <div className="clean-field">
+          <Image src="/reference/phase-two/pet-front.png" alt="Meowchi" width={1024} height={1024} />
+          {remaining.map((index) => <button key={index} style={{ left: `${cleanSpots[index].left}%`, top: `${cleanSpots[index].top}%` }} onClick={() => clearSpot(index)} aria-label="Clean glitch spot"><i /></button>)}
+          {quality !== null && <div className="challenge-result floating"><strong>{remaining.length === 0 ? "SIGNAL SPARKLING!" : "PARTIAL CLEAN"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>COMPLETE CLEAN</button></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SleepChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
+  const [hits, setHits] = useState<number[]>([]);
+  const [quality, setQuality] = useState<number | null>(null);
+  const started = useRef(0);
+  useEffect(() => {
+    started.current = performance.now();
+  }, []);
+  const tapBeat = () => {
+    if (quality !== null) return;
+    const phase = ((performance.now() - started.current) % 1800) / 1800;
+    const distance = Math.min(phase, 1 - phase);
+    const accuracy = Math.max(0, 1 - distance * 4);
+    const next = [...hits, accuracy];
+    setHits(next);
+    if (next.length === 5) setQuality(0.5 + next.reduce((sum, value) => sum + value, 0) / next.length);
+  };
+  return (
+    <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Sleep rhythm challenge">
+      <div className="care-game-window sleep-window">
+        <header><div><p className="eyebrow">SLEEP MODE · DREAM SYNC</p><h3>Tap with the breathing light.</h3></div><button onClick={onClose} aria-label="Close sleep game">×</button></header>
+        <div className="sleep-field">
+          <button className="breath-orb" onClick={tapBeat} disabled={quality !== null}><i /><span>TAP</span></button>
+          <div className="beat-notes">{[0, 1, 2, 3, 4].map((index) => <i key={index} className={hits[index] === undefined ? "" : hits[index] > .7 ? "perfect" : "hit"} />)}</div>
+          <p>Follow five slow pulses. Tap when the rings meet.</p>
+          {quality !== null && <div className="challenge-result"><strong>{quality > 1.28 ? "DREAM SYNC PERFECT" : quality > .9 ? "PEACEFUL RHYTHM" : "RESTLESS, STILL COZY"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>TUCK MEOWCHI IN</button></div>}
         </div>
       </div>
     </div>
@@ -233,6 +329,9 @@ function FoodPicker({ onChoose, onClose }: { onChoose: () => void; onClose: () =
 function CareHub({ locale }: { locale: Locale }) {
   const [gameOpen, setGameOpen] = useState(false);
   const [foodOpen, setFoodOpen] = useState(false);
+  const [cleanOpen, setCleanOpen] = useState(false);
+  const [sleepOpen, setSleepOpen] = useState(false);
+  const [eventNotice, setEventNotice] = useState<"gift" | "meteor" | "visitor" | null>(null);
   const stats = useTamaStore((s) => s.stats);
   const bond = useTamaStore((s) => s.bond);
   const stardust = useTamaStore((s) => s.stardust);
@@ -249,7 +348,22 @@ function CareHub({ locale }: { locale: Locale }) {
   const careCombo = useTamaStore((s) => s.careCombo);
   const request = useTamaStore((s) => s.request);
   const memories = useTamaStore((s) => s.memories);
+  const eventCount = useTamaStore((s) => s.eventCount);
+  const triggerRandomEvent = useTamaStore((s) => s.triggerRandomEvent);
   const activateSignalBurst = useTamaStore((s) => s.activateSignalBurst);
+  const completeCare = (careAction: CareAction, quality: number) => {
+    care(careAction, quality);
+    setFoodOpen(false);
+    setCleanOpen(false);
+    setSleepOpen(false);
+    if (Math.random() < 0.34) {
+      const events = ["gift", "meteor", "visitor"] as const;
+      const event = events[Math.floor(Math.random() * events.length)];
+      triggerRandomEvent(event);
+      setEventNotice(event);
+      window.setTimeout(() => setEventNotice(null), 4200);
+    }
+  };
   const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
   const careCopy = locale === "zh" ? {
     feed: ["喂食", "选择点心，填饱肚子"],
@@ -288,7 +402,7 @@ function CareHub({ locale }: { locale: Locale }) {
         <div className="signal-energy">
           <div><span>{locale === "zh" ? "信号能量" : "SIGNAL ENERGY"}</span><strong>{signalEnergy}%</strong></div>
           <div className="energy-track"><i style={{ width: `${signalEnergy}%` }} /></div>
-          <small>{locale === "zh" ? `连续组合 ×${careCombo} · 已收集回忆 ${memories}` : `CARE COMBO ×${careCombo} · MEMORIES ${memories}`}</small>
+          <small>{locale === "zh" ? `连续组合 ×${careCombo} · 回忆 ${memories} · 奇遇 ${eventCount}` : `CARE COMBO ×${careCombo} · MEMORIES ${memories} · EVENTS ${eventCount}`}</small>
         </div>
         <button className={signalEnergy >= 100 ? "ready" : ""} disabled={signalEnergy < 100 || action !== "idle"} onClick={activateSignalBurst}>
           <span>✦</span><b>{locale === "zh" ? "释放信号爆发" : "ACTIVATE SIGNAL BURST"}</b><small>{signalEnergy >= 100 ? (locale === "zh" ? "领取回忆与奖励" : "CLAIM MEMORY + REWARD") : (locale === "zh" ? "能量达到 100% 后解锁" : "CHARGE TO 100%")}</small>
@@ -354,7 +468,7 @@ function CareHub({ locale }: { locale: Locale }) {
           <div className="panel actions-panel">
             <div className="panel-title"><span>↳</span> {locale === "zh" ? "养成操作" : "CARE ACTIONS"}</div>
             {careActions.map((item) => (
-              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : item.id === "feed" ? setFoodOpen(true) : care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
+              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : item.id === "feed" ? setFoodOpen(true) : item.id === "clean" ? setCleanOpen(true) : setSleepOpen(true)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
                 <i>{item.icon}</i><span><b>{careCopy[item.id][0]}</b><small>{careCopy[item.id][1]}</small></span>
               </button>
             ))}
@@ -385,7 +499,16 @@ function CareHub({ locale }: { locale: Locale }) {
         })}
       </div>
       {gameOpen && <StarGame onClose={() => setGameOpen(false)} />}
-      {foodOpen && <FoodPicker onClose={() => setFoodOpen(false)} onChoose={() => { care("feed"); setFoodOpen(false); }} />}
+      {foodOpen && <FeedChallenge onClose={() => setFoodOpen(false)} onComplete={(quality) => completeCare("feed", quality)} />}
+      {cleanOpen && <CleanChallenge onClose={() => setCleanOpen(false)} onComplete={(quality) => completeCare("clean", quality)} />}
+      {sleepOpen && <SleepChallenge onClose={() => setSleepOpen(false)} onComplete={(quality) => completeCare("sleep", quality)} />}
+      {eventNotice && (
+        <div className={`random-event ${eventNotice}`}>
+          <i>{eventNotice === "gift" ? "◆" : eventNotice === "meteor" ? "✦" : "◉"}</i>
+          <div><small>RARE SIGNAL DETECTED</small><b>{eventNotice === "gift" ? "MYSTERY GIFT" : eventNotice === "meteor" ? "PIXEL METEOR" : "TINY VISITOR"}</b><span>Bonus stardust · energy +12 · bond +2</span></div>
+          <button onClick={() => setEventNotice(null)} aria-label="Dismiss event">×</button>
+        </div>
+      )}
     </section>
   );
 }
