@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Center, Environment, Float, RoundedBox, Sparkles, useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import * as THREE from "three";
@@ -81,7 +81,6 @@ function FormalDeviceModel() {
 
 function Device({ progress }: { progress: number }) {
   const group = useRef<THREE.Group>(null);
-  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const wake = useTamaStore((s) => s.wake);
   useFrame(({ pointer }, delta) => {
     if (!group.current) return;
@@ -89,8 +88,6 @@ function Device({ progress }: { progress: number }) {
     group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.05 + pointer.y * 0.04, 5, delta);
     group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 0.22, 5, delta);
     group.current.scale.setScalar(1);
-    camera.fov = THREE.MathUtils.damp(camera.fov, 38 - progress * 3, 5, delta);
-    camera.updateProjectionMatrix();
   });
   return (
     <group ref={group} rotation={[-0.05, -0.42, 0]}>
@@ -132,9 +129,11 @@ const careActions: Array<{ id: CareAction; icon: string; title: string; copy: st
 function StarGame({ onClose }: { onClose: () => void }) {
   const [time, setTime] = useState(15);
   const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(1);
   const [star, setStar] = useState({ x: 50, y: 45, id: 0 });
   const finishGame = useTamaStore((s) => s.finishGame);
   const finished = useRef(false);
+  const lastCatch = useRef(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => setTime((value) => Math.max(0, value - 1)), 1000);
@@ -149,7 +148,11 @@ function StarGame({ onClose }: { onClose: () => void }) {
 
   const catchStar = () => {
     if (time === 0) return;
-    setScore((value) => value + 1);
+    const now = performance.now();
+    const nextCombo = now - lastCatch.current < 1200 ? Math.min(4, combo + 1) : 1;
+    lastCatch.current = now;
+    setCombo(nextCombo);
+    setScore((value) => value + nextCombo);
     setStar((current) => ({
       x: 12 + Math.random() * 76,
       y: 16 + Math.random() * 64,
@@ -161,7 +164,7 @@ function StarGame({ onClose }: { onClose: () => void }) {
     <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Catch the signal mini game">
       <div className="game-window">
         <header><div><p className="eyebrow">PLAY MODE · SIGNAL CATCH</p><h3>{time > 0 ? "Catch the stars." : "Signal complete!"}</h3></div><button onClick={onClose} aria-label="Close game">×</button></header>
-        <div className="game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>SCORE <b>{String(score).padStart(2, "0")}</b></span><span>REWARD <b>+{score * 12}</b></span></div>
+        <div className="game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>SCORE <b>{String(score).padStart(2, "0")}</b></span><span>COMBO <b>×{combo}</b></span><span>REWARD <b>+{score * 12}</b></span></div>
         <div className="playfield">
           <div className="scanline" />
           {time > 0 ? (
@@ -242,6 +245,11 @@ function CareHub({ locale }: { locale: Locale }) {
   const gameBest = useTamaStore((s) => s.gameBest);
   const dailyClaimed = useTamaStore((s) => s.dailyClaimed);
   const claimDaily = useTamaStore((s) => s.claimDaily);
+  const signalEnergy = useTamaStore((s) => s.signalEnergy);
+  const careCombo = useTamaStore((s) => s.careCombo);
+  const request = useTamaStore((s) => s.request);
+  const memories = useTamaStore((s) => s.memories);
+  const activateSignalBurst = useTamaStore((s) => s.activateSignalBurst);
   const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
   const careCopy = locale === "zh" ? {
     feed: ["喂食", "选择点心，填饱肚子"],
@@ -269,6 +277,22 @@ function CareHub({ locale }: { locale: Locale }) {
           <h2>{UI[locale].meet} <span>Meowchi.</span></h2>
         </div>
         <div className="currency"><i /> {stardust.toLocaleString()} <small>STARDUST</small></div>
+      </div>
+
+      <div className="signal-console">
+        <div className="pet-request">
+          <span className="request-pulse" />
+          <div><small>{locale === "zh" ? "MEOWCHI 当前想要" : "MEOWCHI WANTS"}</small><b>{careCopy[request][0]}</b></div>
+          <em>{locale === "zh" ? "完成请求可获得额外能量与亲密度" : "Match the request for bonus energy + bond"}</em>
+        </div>
+        <div className="signal-energy">
+          <div><span>{locale === "zh" ? "信号能量" : "SIGNAL ENERGY"}</span><strong>{signalEnergy}%</strong></div>
+          <div className="energy-track"><i style={{ width: `${signalEnergy}%` }} /></div>
+          <small>{locale === "zh" ? `连续组合 ×${careCombo} · 已收集回忆 ${memories}` : `CARE COMBO ×${careCombo} · MEMORIES ${memories}`}</small>
+        </div>
+        <button className={signalEnergy >= 100 ? "ready" : ""} disabled={signalEnergy < 100 || action !== "idle"} onClick={activateSignalBurst}>
+          <span>✦</span><b>{locale === "zh" ? "释放信号爆发" : "ACTIVATE SIGNAL BURST"}</b><small>{signalEnergy >= 100 ? (locale === "zh" ? "领取回忆与奖励" : "CLAIM MEMORY + REWARD") : (locale === "zh" ? "能量达到 100% 后解锁" : "CHARGE TO 100%")}</small>
+        </button>
       </div>
 
       <div className="hub-layout">
@@ -342,6 +366,23 @@ function CareHub({ locale }: { locale: Locale }) {
         <div className={careCount >= 3 ? "done" : ""}><span>01</span><b>CARE ×3</b><small>{Math.min(careCount, 3)} / 3</small></div>
         <div className={gameBest >= 5 ? "done" : ""}><span>02</span><b>CATCH ×5</b><small>{Math.min(gameBest, 5)} / 5</small></div>
         <button disabled={dailyClaimed || careCount < 3 || gameBest < 5} onClick={claimDaily}>{dailyClaimed ? "CLAIMED ✓" : "CLAIM +250"}</button>
+      </div>
+      <div className="memory-strip">
+        <header>
+          <p className="eyebrow">{locale === "zh" ? "回忆档案 · 奖励收藏" : "MEMORY ARCHIVE · REWARD COLLECTION"}</p>
+          <h3>{locale === "zh" ? "把陪伴变成可收藏的故事。" : "Turn care into collectible stories."}</h3>
+          <small>{locale === "zh" ? "每次释放信号爆发解锁一枚回忆碎片。" : "Every Signal Burst unlocks one memory fragment."}</small>
+        </header>
+        {[1, 3, 5].map((threshold, index) => {
+          const unlocked = memories >= threshold;
+          return (
+            <article className={`memory-card ${unlocked ? "unlocked" : "locked"}`} key={threshold}>
+              <div className="memory-art">{unlocked ? `MEMORY SIGNAL 0${index + 1}` : "ILLUSTRATION SLOT"}</div>
+              <b>{locale === "zh" ? ["初次连接", "深夜零食", "秘密花园"][index] : ["FIRST LINK", "MIDNIGHT SNACK", "SECRET GARDEN"][index]}</b>
+              <small>{unlocked ? (locale === "zh" ? "已捕获" : "CAPTURED") : `${memories} / ${threshold} BURSTS`}</small>
+            </article>
+          );
+        })}
       </div>
       {gameOpen && <StarGame onClose={() => setGameOpen(false)} />}
       {foodOpen && <FoodPicker onClose={() => setFoodOpen(false)} onChoose={() => { care("feed"); setFoodOpen(false); }} />}
@@ -448,7 +489,11 @@ function ProductStory({ locale }: { locale: Locale }) {
 }
 
 export default function Home() {
-  const [locale, setLocale] = useState<Locale>("en");
+  const [locale, setLocale] = useState<Locale>(() => {
+    if (typeof window === "undefined") return "en";
+    const saved = window.localStorage.getItem("tama-link-locale");
+    return saved === "zh" || saved === "en" ? saved : "en";
+  });
   const [target, setTarget] = useState(0);
   const [progress, setProgress] = useState(0);
   const action = useTamaStore((s) => s.action);
@@ -458,11 +503,6 @@ export default function Home() {
   const frame = useRef<number | null>(null);
   const reduced = useMemo(() => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches, []);
   const copy = UI[locale];
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("tama-link-locale");
-    if (saved === "zh" || saved === "en") setLocale(saved);
-  }, []);
 
   const toggleLocale = () => {
     const next = locale === "en" ? "zh" : "en";

@@ -24,12 +24,17 @@ type TamaState = {
   careCount: number;
   gameBest: number;
   dailyClaimed: boolean;
+  signalEnergy: number;
+  careCombo: number;
+  request: CareAction;
+  memories: number;
   wake: () => void;
   trigger: (action: PetAction) => void;
   care: (action: CareAction) => void;
   equipCharm: (charm: Charm) => void;
   finishGame: (score: number) => void;
   claimDaily: () => void;
+  activateSignalBurst: () => void;
   reset: () => void;
 };
 
@@ -49,6 +54,10 @@ export const useTamaStore = create<TamaState>()(
       careCount: 0,
       gameBest: 0,
       dailyClaimed: false,
+      signalEnergy: 0,
+      careCombo: 0,
+      request: "feed",
+      memories: 0,
       wake: () => set({ awake: true }),
       trigger: (action) => {
         if (action === "idle" || get().action !== "idle") return;
@@ -59,6 +68,9 @@ export const useTamaStore = create<TamaState>()(
       care: (careAction) => {
         const current = get();
         if (current.action !== "idle") return;
+        const requestOrder: CareAction[] = ["feed", "play", "clean", "sleep"];
+        const requestMatched = current.request === careAction;
+        const combo = current.lastCare && current.lastCare !== careAction ? Math.min(4, current.careCombo + 1) : 1;
         const delta: Record<CareAction, Partial<PetStats>> = {
           feed: { hunger: 18 },
           play: { fun: 14, sleep: -4 },
@@ -75,9 +87,12 @@ export const useTamaStore = create<TamaState>()(
           action: careAction === "play" ? "play" : careAction === "feed" ? "call" : "feel",
           lastCare: careAction,
           stats: nextStats,
-          bond: Math.min(100, current.bond + 3),
-          stardust: current.stardust + 25,
+          bond: Math.min(100, current.bond + (requestMatched ? 5 : 3)),
+          stardust: current.stardust + 25 + combo * 5,
           careCount: current.careCount + 1,
+          careCombo: combo,
+          signalEnergy: Math.min(100, current.signalEnergy + (requestMatched ? 34 : 18) + combo * 3),
+          request: requestMatched ? requestOrder[(requestOrder.indexOf(careAction) + 1) % requestOrder.length] : current.request,
         });
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
@@ -88,6 +103,8 @@ export const useTamaStore = create<TamaState>()(
       },
       finishGame: (score) => {
         const current = get();
+        const requestMatched = current.request === "play";
+        const combo = current.lastCare && current.lastCare !== "play" ? Math.min(4, current.careCombo + 1) : 1;
         set({
           action: "play",
           lastCare: "play",
@@ -95,6 +112,10 @@ export const useTamaStore = create<TamaState>()(
           stardust: current.stardust + score * 12,
           bond: Math.min(100, current.bond + Math.max(1, Math.floor(score / 2))),
           stats: { ...current.stats, fun: Math.min(100, current.stats.fun + score * 2) },
+          careCount: current.careCount + 1,
+          careCombo: combo,
+          signalEnergy: Math.min(100, current.signalEnergy + (requestMatched ? 34 : 18) + combo * 3),
+          request: requestMatched ? "clean" : current.request,
         });
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
@@ -103,6 +124,19 @@ export const useTamaStore = create<TamaState>()(
         const current = get();
         if (current.dailyClaimed || current.careCount < 3 || current.gameBest < 5) return;
         set({ dailyClaimed: true, stardust: current.stardust + 250, bond: Math.min(100, current.bond + 5) });
+      },
+      activateSignalBurst: () => {
+        const current = get();
+        if (current.signalEnergy < 100 || current.action !== "idle") return;
+        set({
+          signalEnergy: 0,
+          action: "feel",
+          stardust: current.stardust + 180,
+          bond: Math.min(100, current.bond + 6),
+          memories: current.memories + 1,
+        });
+        clearTimeout(actionTimer);
+        actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
       },
       reset: () =>
         set({
@@ -116,6 +150,10 @@ export const useTamaStore = create<TamaState>()(
           careCount: 0,
           gameBest: 0,
           dailyClaimed: false,
+          signalEnergy: 0,
+          careCombo: 0,
+          request: "feed",
+          memories: 0,
         }),
     }),
     { name: "tama-link-phase-two" },
