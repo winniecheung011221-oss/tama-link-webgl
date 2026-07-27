@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Center, Environment, Float, RoundedBox, Sparkles, useGLTF } from "@react-three/drei";
+import { Center, Environment, RoundedBox, useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import * as THREE from "three";
 import Image from "next/image";
@@ -71,7 +71,24 @@ function PlaceholderDevice() {
 
 function FormalDeviceModel() {
   const { scene } = useGLTF(ASSETS.device.full.url);
-  const model = useMemo(() => scene.clone(true), [scene]);
+  const model = useMemo(() => {
+    const clone = scene.clone(true);
+    clone.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      const tuned = materials.map((material) => {
+        const next = material.clone();
+        if (next instanceof THREE.MeshStandardMaterial) {
+          next.roughness = Math.min(next.roughness, 0.2);
+          next.metalness = Math.max(next.metalness, 0.22);
+          next.envMapIntensity = 0.62;
+        }
+        return next;
+      });
+      object.material = Array.isArray(object.material) ? tuned : tuned[0];
+    });
+    return clone;
+  }, [scene]);
   return (
     <group position={ASSETS.device.full.position} rotation={ASSETS.device.full.rotation} scale={ASSETS.device.full.scale}>
       <Center><primitive object={model} /></Center>
@@ -84,16 +101,30 @@ function Device({ progress }: { progress: number }) {
   const wake = useTamaStore((s) => s.wake);
   useFrame(({ pointer }, delta) => {
     if (!group.current) return;
-    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -0.42 + progress * 0.65 + pointer.x * 0.08, 5, delta);
-    group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.05 + pointer.y * 0.04, 5, delta);
-    group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 0.22, 5, delta);
-    group.current.scale.setScalar(1);
+    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -0.16 + progress * 0.18 + pointer.x * 0.035, 3.6, delta);
+    group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.025 + pointer.y * 0.02, 3.6, delta);
+    group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 0.48, 3.6, delta);
+    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, 1.2 + progress * 0.16, 3.6, delta));
   });
   return (
-    <group ref={group} rotation={[-0.05, -0.42, 0]}>
+    <group ref={group} rotation={[-0.025, -0.16, 0]} scale={1.2}>
       <ModelErrorBoundary fallback={<PlaceholderDevice />}>
         <Suspense fallback={<PlaceholderDevice />}><FormalDeviceModel /></Suspense>
       </ModelErrorBoundary>
+      <mesh position={[0.08, 0.42, 0.58]}>
+        <planeGeometry args={[1.72, 1.48]} />
+        <meshBasicMaterial color={THEME.green} transparent opacity={0.045} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {[
+        [-0.72, -1.26, THEME.green],
+        [0, -1.29, THEME.orange],
+        [0.72, -1.26, THEME.purple],
+      ].map(([x, y, color], index) => (
+        <mesh key={index} position={[x as number, y as number, 0.62]}>
+          <circleGeometry args={[0.27, 32]} />
+          <meshBasicMaterial color={color as string} transparent opacity={0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      ))}
       <mesh position={[0.12, 0.42, 0.55]} onPointerDown={(e) => { e.stopPropagation(); wake(); }}>
         <planeGeometry args={[1.86, 1.62]} />
         <meshBasicMaterial color="#071008" transparent opacity={0.05} />
@@ -107,14 +138,13 @@ function Scene({ progress }: { progress: number }) {
     <>
       <color attach="background" args={[THEME.background]} />
       <fog attach="fog" args={[THEME.background, 7, 14]} />
-      <ambientLight intensity={0.82} color="#f5f1e8" />
-      <directionalLight position={[-3, 5, 4]} intensity={2.2} color="#fff7e8" />
-      <spotLight position={[-5, 5, 5]} intensity={34} color="#dfffb3" angle={0.38} penumbra={1} />
-      <spotLight position={[5, 2, 3]} intensity={20} color="#c7b5ff" angle={0.5} penumbra={1} />
-      <pointLight position={[0, -2.2, 3.5]} intensity={7} color="#ffc47c" distance={7} />
-      <Sparkles count={60} scale={[8, 6, 5]} size={1.2} speed={0.25} color={THEME.green} opacity={0.28} />
-      <Float speed={1.2} rotationIntensity={0.08} floatIntensity={0.16}><Device progress={progress} /></Float>
-      <Environment preset="city" environmentIntensity={0.48} />
+      <ambientLight intensity={0.26} color="#c9d2d9" />
+      <directionalLight position={[-4, 6, 5]} intensity={1.6} color="#e8f3ff" />
+      <spotLight position={[-5, 5.5, 5]} intensity={18} color="#eaf5ff" angle={0.34} penumbra={0.92} />
+      <spotLight position={[5, 2.5, -2]} intensity={7.5} color="#9e80e8" angle={0.5} penumbra={1} />
+      <pointLight position={[0, -3.2, 2.2]} intensity={2.6} color={THEME.green} distance={6} />
+      <Device progress={progress} />
+      <Environment preset="studio" environmentIntensity={0.22} />
     </>
   );
 }
@@ -612,7 +642,7 @@ function ProductStory({ locale }: { locale: Locale }) {
 }
 
 export default function Home() {
-  const [locale, setLocale] = useState<Locale>(() => {
+  const [locale] = useState<Locale>(() => {
     if (typeof window === "undefined") return "en";
     const saved = window.localStorage.getItem("tama-link-locale");
     return saved === "zh" || saved === "en" ? saved : "en";
@@ -626,12 +656,6 @@ export default function Home() {
   const frame = useRef<number | null>(null);
   const reduced = useMemo(() => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches, []);
   const copy = UI[locale];
-
-  const toggleLocale = () => {
-    const next = locale === "en" ? "zh" : "en";
-    setLocale(next);
-    window.localStorage.setItem("tama-link-locale", next);
-  };
 
   useEffect(() => {
     const animate = () => {
@@ -666,18 +690,18 @@ export default function Home() {
       <PixelCursor />
       <section className="hero">
         <header className="topbar">
-          <a className="brand" href="#top" aria-label="TAMA LINK home"><span>●</span> TAMA LINK</a>
-          <div className="top-actions"><button className="language-toggle" onClick={toggleLocale}>{locale === "en" ? "中文" : "EN"}</button><div className="status"><i className={awake ? "online" : ""} /> {awake ? "LINK ACTIVE" : "SIGNAL READY"}</div></div>
+          <a className="brand" href="#top" aria-label="TAMA LINK home">TAMA LINK</a>
+          <div className="top-actions"><div className="status"><i className="online" /> LINK ACTIVE</div><span className="sound-label">SOUND</span></div>
         </header>
         <div className="copy" style={{ opacity: 1 - progress * 1.35 }}>
           <p className="eyebrow">{copy.heroKicker}</p>
           <h1>{copy.heroTitleA}<br /><em>{copy.heroTitleB}</em></h1>
           <p className="lede">{copy.heroCopy}</p>
+          <div className="scroll-cue" style={{ opacity: Math.max(0, 1 - progress * 8) }}><span>SCROLL TO CONNECT</span><b>↓</b></div>
         </div>
-        <div className="canvas-wrap" style={{ left: `${36 - progress * 36}vw`, right: `${-3 + progress * 3}vw` }}><Canvas camera={{ position: [0, 0, 8], fov: 38 }} dpr={[1, 1.6]}><Scene progress={progress} /></Canvas></div>
-        <div className="hint" style={{ opacity: progress > 0.88 ? 0 : 1 - progress * 0.6 }}>
-          <span className="wheel" /> {progress < 0.62 ? copy.scroll : `${copy.signals} · A / S / D`}
-        </div>
+        <div className="signal-thread" style={{ opacity: Math.max(0, 0.38 - progress * 0.6) }} />
+        <div className="canvas-wrap"><Canvas camera={{ position: [0, 0, 8], fov: 38 }} dpr={[1, 1.6]}><Scene progress={progress} /></Canvas></div>
+        <div className="near-hint" data-visible={progress > 0.62}><span>PRESS A BUTTON</span><b>CALL · PLAY · FEEL</b></div>
         <div className="hero-controls" data-visible={progress > 0.66}>
           {buttonMap.map((item) => (
             <button key={item.key} onClick={() => trigger(item.key)} style={{ "--signal-color": item.color } as CSSProperties}>
