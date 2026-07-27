@@ -2,8 +2,8 @@ export const ASSETS = {
   device: {
     full: {
       url: "/models/device/tama-device-full.glb",
-      scale: 3.25,
-      position: [0.12, -0.12, 0] as [number, number, number],
+      scale: 2.9,
+      position: [0, -0.08, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     buttons: {

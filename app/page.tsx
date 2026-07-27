@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Center, Environment, Float, RoundedBox, Sparkles, useGLTF } from "@react-three/drei";
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import * as THREE from "three";
 import Image from "next/image";
 import { useTamaStore, type CareAction, type PetAction } from "../src/store/tamaStore";
@@ -14,46 +14,46 @@ const buttonMap: Array<{ key: PetAction; color: string; x: number; label: string
   { key: "play", color: THEME.orange, x: 0, label: "PLAY" },
   { key: "feel", color: THEME.purple, x: 0.72, label: "FEEL" },
 ];
+type Locale = "en" | "zh";
+const UI = {
+  en: {
+    heroKicker: "A POCKET-SIZED DIGITAL COMPANION",
+    heroTitleA: "CARE IS",
+    heroTitleB: "A SIGNAL.",
+    heroCopy: "A living connection, waiting on the other side of the glass.",
+    scroll: "SCROLL TO CONNECT",
+    signals: "CHOOSE A SIGNAL",
+    petKicker: "PET HOME · LIVE CARE LOOP",
+    meet: "Meet",
+    roomKicker: "ROOM · LIVE 3D SPACE",
+    roomTitle: "Meowchi’s little world.",
+    storyKicker: "OBJECT 01 · DESIGNED FOR CONNECTION",
+    storyTitleA: "Transparent,",
+    storyTitleB: "tactile,",
+    storyTitleC: "alive.",
+  },
+  zh: {
+    heroKicker: "口袋里的数字陪伴",
+    heroTitleA: "关心就是",
+    heroTitleB: "一种信号。",
+    heroCopy: "玻璃的另一侧，有个小生命正在等待与你连接。",
+    scroll: "滚动以建立连接",
+    signals: "选择一个互动信号",
+    petKicker: "宠物主页 · 实时养成",
+    meet: "你好，",
+    roomKicker: "宠物小家 · 实时 3D 场景",
+    roomTitle: "Meowchi 的小小世界。",
+    storyKicker: "产品 01 · 为陪伴而设计",
+    storyTitleA: "透明，",
+    storyTitleB: "可触，",
+    storyTitleC: "有生命。",
+  },
+} as const;
 
 class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
-}
-
-function DeviceButton({ item, enabled }: { item: (typeof buttonMap)[number]; enabled: boolean }) {
-  const group = useRef<THREE.Group>(null);
-  const [hover, setHover] = useState(false);
-  const [pressed, setPressed] = useState(false);
-  const trigger = useTamaStore((s) => s.trigger);
-  const url = ASSETS.device.buttons[item.key as keyof typeof ASSETS.device.buttons];
-  const { scene } = useGLTF(url);
-  const model = useMemo(() => scene.clone(true), [scene]);
-  useFrame((_, delta) => {
-    if (!group.current) return;
-    group.current.position.z = THREE.MathUtils.damp(group.current.position.z, pressed ? 0.36 : 0.47, 18, delta);
-    const targetScale = hover ? 0.5 : 0.46;
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, targetScale, 14, delta));
-  });
-  const activate = () => {
-    if (!enabled || pressed) return;
-    setPressed(true);
-    trigger(item.key);
-    window.setTimeout(() => setPressed(false), SCENE.pressMs);
-  };
-  return (
-    <group
-      ref={group}
-      position={[item.x, -1.48, 0.47]}
-      scale={0.46}
-      onPointerEnter={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = enabled ? "pointer" : "default"; }}
-      onPointerLeave={() => { setHover(false); document.body.style.cursor = "default"; }}
-      onPointerDown={(e) => { e.stopPropagation(); activate(); }}
-    >
-      <Center><primitive object={model} /></Center>
-      <pointLight color={item.color} intensity={hover ? 3 : 0.4} distance={1.2} />
-    </group>
-  );
 }
 
 function PlaceholderDevice() {
@@ -87,9 +87,9 @@ function Device({ progress }: { progress: number }) {
     if (!group.current) return;
     group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -0.42 + progress * 0.65 + pointer.x * 0.08, 5, delta);
     group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.05 + pointer.y * 0.04, 5, delta);
-    group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 1.1, 5, delta);
-    group.current.scale.setScalar(1 + progress * 0.13);
-    camera.fov = THREE.MathUtils.damp(camera.fov, 38 - progress * 9, 5, delta);
+    group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 0.22, 5, delta);
+    group.current.scale.setScalar(1);
+    camera.fov = THREE.MathUtils.damp(camera.fov, 38 - progress * 3, 5, delta);
     camera.updateProjectionMatrix();
   });
   return (
@@ -101,11 +101,6 @@ function Device({ progress }: { progress: number }) {
         <planeGeometry args={[1.86, 1.62]} />
         <meshBasicMaterial color="#071008" transparent opacity={0.05} />
       </mesh>
-      {progress > 0.55 && buttonMap.map((item) => (
-        <ModelErrorBoundary key={item.key} fallback={<></>}>
-          <Suspense fallback={null}><DeviceButton item={item} enabled={progress > 0.64} /></Suspense>
-        </ModelErrorBoundary>
-      ))}
     </group>
   );
 }
@@ -115,15 +110,14 @@ function Scene({ progress }: { progress: number }) {
     <>
       <color attach="background" args={[THEME.background]} />
       <fog attach="fog" args={[THEME.background, 7, 14]} />
-      <ambientLight intensity={0.48} color="#dfffd1" />
-      <directionalLight position={[-3, 5, 4]} intensity={2.8} color="#f6fff0" />
-      <spotLight position={[-5, 5, 5]} intensity={78} color={THEME.green} angle={0.34} penumbra={0.92} />
-      <spotLight position={[5, 2, 3]} intensity={58} color={THEME.purple} angle={0.46} penumbra={1} />
-      <pointLight position={[0, -2.2, 3.5]} intensity={18} color={THEME.orange} distance={7} />
-      <pointLight position={[0, 1.2, 4]} intensity={12} color="#d9ffb8" distance={5} />
+      <ambientLight intensity={0.82} color="#f5f1e8" />
+      <directionalLight position={[-3, 5, 4]} intensity={2.2} color="#fff7e8" />
+      <spotLight position={[-5, 5, 5]} intensity={34} color="#dfffb3" angle={0.38} penumbra={1} />
+      <spotLight position={[5, 2, 3]} intensity={20} color="#c7b5ff" angle={0.5} penumbra={1} />
+      <pointLight position={[0, -2.2, 3.5]} intensity={7} color="#ffc47c" distance={7} />
       <Sparkles count={60} scale={[8, 6, 5]} size={1.2} speed={0.25} color={THEME.green} opacity={0.28} />
       <Float speed={1.2} rotationIntensity={0.08} floatIntensity={0.16}><Device progress={progress} /></Float>
-      <Environment preset="city" environmentIntensity={0.72} />
+      <Environment preset="city" environmentIntensity={0.48} />
     </>
   );
 }
@@ -192,11 +186,11 @@ function PetHomeModel({ action }: { action: PetAction }) {
     const t = clock.elapsedTime;
     group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, pointer.x * 0.18, 4, delta);
     group.current.rotation.z = THREE.MathUtils.damp(group.current.rotation.z, action === "feel" ? Math.sin(t * 8) * 0.08 : 0, 8, delta);
-    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, action === "play" ? Math.abs(Math.sin(t * 7)) * 0.18 - 1.55 : -1.55, 10, delta);
+    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, action === "play" ? Math.abs(Math.sin(t * 7)) * 0.12 - 0.15 : -0.15, 10, delta);
   });
   return (
-    <group ref={group} scale={ASSETS.pet.scale} position={ASSETS.pet.position}>
-      <Center bottom><primitive object={model} /></Center>
+    <group ref={group} scale={2.15} position={[0, -0.15, 0]}>
+      <Center><primitive object={model} /></Center>
     </group>
   );
 }
@@ -208,7 +202,7 @@ function PropModel({ url }: { url: string }) {
   useFrame((_, delta) => {
     if (group.current) group.current.rotation.y += delta * 0.65;
   });
-  return <group ref={group} scale={2.2}><Center><primitive object={model} /></Center></group>;
+  return <group ref={group} scale={1.15}><Center><primitive object={model} /></Center></group>;
 }
 
 function FoodPicker({ onChoose, onClose }: { onChoose: () => void; onClose: () => void }) {
@@ -223,7 +217,7 @@ function FoodPicker({ onChoose, onClose }: { onChoose: () => void; onClose: () =
         <div className="food-grid">
           {foods.map((food) => (
             <button key={food.name} onClick={onChoose}>
-              <div className="food-model"><Canvas camera={{ position: [0, 0, 3.2], fov: 35 }} dpr={[1, 1.4]}><ambientLight intensity={2} /><spotLight position={[3, 4, 4]} intensity={12} color={THEME.green} /><Suspense fallback={null}><PropModel url={food.url} /></Suspense></Canvas></div>
+              <div className="food-model"><Canvas camera={{ position: [0, 0, 4.5], fov: 36 }} dpr={[1, 1.4]}><ambientLight intensity={1.5} color="#fff6e8" /><spotLight position={[3, 4, 4]} intensity={8} color="#fff0d0" /><Suspense fallback={null}><PropModel url={food.url} /></Suspense></Canvas></div>
               <b>{food.name}</b><small>{food.note}</small><span>GIVE TO MEOWCHI →</span>
             </button>
           ))}
@@ -233,7 +227,7 @@ function FoodPicker({ onChoose, onClose }: { onChoose: () => void; onClose: () =
   );
 }
 
-function CareHub() {
+function CareHub({ locale }: { locale: Locale }) {
   const [gameOpen, setGameOpen] = useState(false);
   const [foodOpen, setFoodOpen] = useState(false);
   const stats = useTamaStore((s) => s.stats);
@@ -249,19 +243,30 @@ function CareHub() {
   const dailyClaimed = useTamaStore((s) => s.dailyClaimed);
   const claimDaily = useTamaStore((s) => s.claimDaily);
   const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
+  const careCopy = locale === "zh" ? {
+    feed: ["喂食", "选择点心，填饱肚子"],
+    play: ["玩耍", "进入接星星小游戏"],
+    clean: ["清洁", "让毛发重新闪亮"],
+    sleep: ["睡觉", "休息并恢复精力"],
+  } : {
+    feed: ["FEED", "Fill that tiny tummy"],
+    play: ["PLAY", "Turn energy into joy"],
+    clean: ["CLEAN", "Fresh fur, clear signal"],
+    sleep: ["SLEEP", "Rest and recharge"],
+  };
   const statRows = [
-    ["HUNGER", stats.hunger],
-    ["FUN", stats.fun],
-    ["CLEAN", stats.clean],
-    ["SLEEP", stats.sleep],
+    [locale === "zh" ? "饱食" : "HUNGER", stats.hunger],
+    [locale === "zh" ? "快乐" : "FUN", stats.fun],
+    [locale === "zh" ? "清洁" : "CLEAN", stats.clean],
+    [locale === "zh" ? "睡眠" : "SLEEP", stats.sleep],
   ] as const;
 
   return (
     <section className="care-hub" id="pet-home">
       <div className="hub-heading">
         <div>
-          <p className="eyebrow">PET HOME · LIVE CARE LOOP</p>
-          <h2>Meet <span>Meowchi.</span></h2>
+          <p className="eyebrow">{UI[locale].petKicker}</p>
+          <h2>{UI[locale].meet} <span>Meowchi.</span></h2>
         </div>
         <div className="currency"><i /> {stardust.toLocaleString()} <small>STARDUST</small></div>
       </div>
@@ -269,7 +274,7 @@ function CareHub() {
       <div className="hub-layout">
         <aside className="hub-column">
           <div className="panel status-panel">
-            <div className="panel-title"><span>♡</span> STATUS <small>LIVE</small></div>
+            <div className="panel-title"><span>♡</span> {locale === "zh" ? "状态" : "STATUS"} <small>{locale === "zh" ? "实时" : "LIVE"}</small></div>
             {statRows.map(([label, value]) => (
               <div className="stat-row" key={label}>
                 <b>{label}</b>
@@ -279,8 +284,8 @@ function CareHub() {
             ))}
           </div>
           <div className="panel mood-panel">
-            <div className="panel-title"><span>◉</span> MOOD</div>
-            <p>{mood}</p>
+            <div className="panel-title"><span>◉</span> {locale === "zh" ? "心情" : "MOOD"}</div>
+            <p>{locale === "zh" ? (mood === "radiant" ? "闪闪发光" : mood === "content" ? "满足" : "好奇") : mood}</p>
             <div className="pixel-face">ฅ^•ﻌ•^ฅ</div>
             <small>Bond responds to every care action.</small>
           </div>
@@ -289,10 +294,10 @@ function CareHub() {
         <div className="pet-stage">
           <div className={`pet-aura ${action !== "idle" ? "active" : ""}`} />
           <div className="pet-canvas">
-            <Canvas camera={{ position: [0, 0.15, 4.6], fov: 34 }} dpr={[1, 1.5]}>
-              <ambientLight intensity={1.45} />
-              <spotLight position={[-3, 5, 4]} intensity={24} color={THEME.green} penumbra={1} />
-              <spotLight position={[4, 1, 3]} intensity={16} color={THEME.purple} penumbra={1} />
+            <Canvas camera={{ position: [0, 0.15, 3.6], fov: 36 }} dpr={[1, 1.5]}>
+              <ambientLight intensity={1.25} color="#fff8e8" />
+              <spotLight position={[-3, 5, 4]} intensity={14} color="#e9ffd0" penumbra={1} />
+              <spotLight position={[4, 1, 3]} intensity={8} color="#d6c8ff" penumbra={1} />
               <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><PetHomeModel action={action} /></Suspense></ModelErrorBoundary>
               <Environment preset="studio" />
             </Canvas>
@@ -309,7 +314,7 @@ function CareHub() {
 
         <aside className="hub-column right">
           <div className="panel charms-panel">
-            <div className="panel-title"><span>⌁</span> CHARMS <small>2 / 2</small></div>
+            <div className="panel-title"><span>⌁</span> {locale === "zh" ? "挂件" : "CHARMS"} <small>2 / 2</small></div>
             <div className="charm-grid">
               <button className={equippedCharm === "lucky-star" ? "selected" : ""} onClick={() => equipCharm("lucky-star")}>
                 <b>★</b><span>Lucky Star</span><small>{equippedCharm === "lucky-star" ? "EQUIPPED" : "EQUIP"}</small>
@@ -323,17 +328,17 @@ function CareHub() {
             </div>
           </div>
           <div className="panel actions-panel">
-            <div className="panel-title"><span>↳</span> CARE ACTIONS</div>
+            <div className="panel-title"><span>↳</span> {locale === "zh" ? "养成操作" : "CARE ACTIONS"}</div>
             {careActions.map((item) => (
               <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : item.id === "feed" ? setFoodOpen(true) : care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
-                <i>{item.icon}</i><span><b>{item.title}</b><small>{item.copy}</small></span>
+                <i>{item.icon}</i><span><b>{careCopy[item.id][0]}</b><small>{careCopy[item.id][1]}</small></span>
               </button>
             ))}
           </div>
         </aside>
       </div>
       <div className="daily-strip">
-        <div><p className="eyebrow">DAILY LINK · 01</p><h3>Complete today’s care signal.</h3></div>
+        <div><p className="eyebrow">{locale === "zh" ? "每日连接 · 01" : "DAILY LINK · 01"}</p><h3>{locale === "zh" ? "完成今天的陪伴任务。" : "Complete today’s care signal."}</h3></div>
         <div className={careCount >= 3 ? "done" : ""}><span>01</span><b>CARE ×3</b><small>{Math.min(careCount, 3)} / 3</small></div>
         <div className={gameBest >= 5 ? "done" : ""}><span>02</span><b>CATCH ×5</b><small>{Math.min(gameBest, 5)} / 5</small></div>
         <button disabled={dailyClaimed || careCount < 3 || gameBest < 5} onClick={claimDaily}>{dailyClaimed ? "CLAIMED ✓" : "CLAIM +250"}</button>
@@ -373,7 +378,7 @@ function PixelCursor() {
 function RoomEnvironmentModel() {
   const { scene } = useGLTF(ASSETS.scenes.petHomeBlack);
   const model = useMemo(() => scene.clone(true), [scene]);
-  return <group scale={7.2} position={[0, -1.35, 0]} rotation={[0, -0.16, 0]}><Center bottom><primitive object={model} /></Center></group>;
+  return <group scale={4.4} position={[0, -0.25, -0.45]} rotation={[0, -0.08, 0]}><Center><primitive object={model} /></Center></group>;
 }
 
 function RoomPetModel() {
@@ -383,12 +388,12 @@ function RoomPetModel() {
   useFrame(({ clock }, delta) => {
     if (!group.current) return;
     group.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.13;
-    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, -1.1 + Math.sin(clock.elapsedTime * 1.5) * 0.025, 4, delta);
+    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, -0.35 + Math.sin(clock.elapsedTime * 1.5) * 0.025, 4, delta);
   });
-  return <group ref={group} scale={2.15} position={[0.15, -1.1, 0.75]}><Center bottom><primitive object={model} /></Center></group>;
+  return <group ref={group} scale={1.55} position={[0.1, -0.35, 0.7]}><Center><primitive object={model} /></Center></group>;
 }
 
-function PetRoom() {
+function PetRoom({ locale }: { locale: Locale }) {
   const [theme, setTheme] = useState<"lab" | "night" | "garden">("night");
   const lighting = {
     lab: { key: "#c9ecff", fill: "#b8ff5f", label: "PIXEL LAB" },
@@ -398,20 +403,20 @@ function PetRoom() {
   return (
     <section className={`pet-room theme-${theme}`} id="room">
       <div className="room-head">
-        <div><p className="eyebrow">ROOM · LIVE 3D SPACE</p><h2>Meowchi’s little world.</h2></div>
+        <div><p className="eyebrow">{UI[locale].roomKicker}</p><h2>{UI[locale].roomTitle}</h2></div>
         <div className="theme-switcher">
           {(["lab", "night", "garden"] as const).map((item) => <button key={item} className={theme === item ? "active" : ""} onClick={() => setTheme(item)}>{item === "lab" ? "PIXEL LAB" : item === "night" ? "SOFT NIGHT" : "LIME GARDEN"}</button>)}
         </div>
       </div>
       <div className="room-stage">
-        <Canvas camera={{ position: [0, 1.1, 6.2], fov: 38 }} dpr={[1, 1.5]}>
+        <Canvas camera={{ position: [0, 0.45, 5.5], fov: 42 }} dpr={[1, 1.5]}>
           <color attach="background" args={["#020403"]} />
-          <ambientLight intensity={0.58} color={lighting.fill} />
-          <spotLight position={[-4, 6, 4]} intensity={50} color={lighting.key} angle={0.48} penumbra={1} />
-          <spotLight position={[5, 2, 3]} intensity={30} color={lighting.fill} angle={0.45} penumbra={1} />
-          <pointLight position={[0, 0.2, 2]} intensity={14} color={lighting.fill} distance={5} />
+          <ambientLight intensity={1.05} color="#fff6e8" />
+          <spotLight position={[-4, 6, 4]} intensity={22} color={lighting.key} angle={0.5} penumbra={1} />
+          <spotLight position={[5, 2, 3]} intensity={10} color={lighting.fill} angle={0.5} penumbra={1} />
+          <pointLight position={[0, 0.2, 2]} intensity={6} color="#fff1d5" distance={5} />
           <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><RoomEnvironmentModel /><RoomPetModel /></Suspense></ModelErrorBoundary>
-          <Environment preset="night" environmentIntensity={0.45} />
+          <Environment preset="apartment" environmentIntensity={0.38} />
         </Canvas>
         <div className="room-badge"><i /> {lighting.label}<small>MODEL SPACE ACTIVE</small></div>
         <div className="room-controls"><span>DRAG TO LOOK</span><span>THEME SAVED LOCALLY</span></div>
@@ -420,13 +425,13 @@ function PetRoom() {
   );
 }
 
-function ProductStory() {
+function ProductStory({ locale }: { locale: Locale }) {
   return (
     <section className="product-story">
       <div className="story-copy">
-        <p className="eyebrow">OBJECT 01 · DESIGNED FOR CONNECTION</p>
-        <h2>Transparent,<br />tactile, <span>alive.</span></h2>
-        <p>The shell reveals the technology inside while three color-coded buttons turn care into a physical ritual. Every press has a different emotional response.</p>
+        <p className="eyebrow">{UI[locale].storyKicker}</p>
+        <h2>{UI[locale].storyTitleA}<br />{UI[locale].storyTitleB} <span>{UI[locale].storyTitleC}</span></h2>
+        <p>{locale === "zh" ? "透明外壳展示内部结构，三枚颜色不同的按钮把陪伴变成可以触摸的仪式，每次按压都会得到不同的情绪回应。" : "The shell reveals the technology inside while three color-coded buttons turn care into a physical ritual. Every press has a different emotional response."}</p>
         <div className="material-list">
           <span><i className="swatch shell" /> TRANSPARENT PC</span>
           <span><i className="swatch lime" /> LIME SIGNAL</span>
@@ -443,6 +448,7 @@ function ProductStory() {
 }
 
 export default function Home() {
+  const [locale, setLocale] = useState<Locale>("en");
   const [target, setTarget] = useState(0);
   const [progress, setProgress] = useState(0);
   const action = useTamaStore((s) => s.action);
@@ -451,6 +457,18 @@ export default function Home() {
   const reset = useTamaStore((s) => s.reset);
   const frame = useRef<number | null>(null);
   const reduced = useMemo(() => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches, []);
+  const copy = UI[locale];
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("tama-link-locale");
+    if (saved === "zh" || saved === "en") setLocale(saved);
+  }, []);
+
+  const toggleLocale = () => {
+    const next = locale === "en" ? "zh" : "en";
+    setLocale(next);
+    window.localStorage.setItem("tama-link-locale", next);
+  };
 
   useEffect(() => {
     const animate = () => {
@@ -486,23 +504,30 @@ export default function Home() {
       <section className="hero">
         <header className="topbar">
           <a className="brand" href="#top" aria-label="TAMA LINK home"><span>●</span> TAMA LINK</a>
-          <div className="status"><i className={awake ? "online" : ""} /> {awake ? "LINK ACTIVE" : "SIGNAL READY"}</div>
+          <div className="top-actions"><button className="language-toggle" onClick={toggleLocale}>{locale === "en" ? "中文" : "EN"}</button><div className="status"><i className={awake ? "online" : ""} /> {awake ? "LINK ACTIVE" : "SIGNAL READY"}</div></div>
         </header>
         <div className="copy" style={{ opacity: 1 - progress * 1.35 }}>
-          <p className="eyebrow">A POCKET-SIZED DIGITAL COMPANION</p>
-          <h1>CARE IS<br /><em>A SIGNAL.</em></h1>
-          <p className="lede">A living connection, waiting on the other side of the glass.</p>
+          <p className="eyebrow">{copy.heroKicker}</p>
+          <h1>{copy.heroTitleA}<br /><em>{copy.heroTitleB}</em></h1>
+          <p className="lede">{copy.heroCopy}</p>
         </div>
-        <div className="canvas-wrap"><Canvas camera={{ position: [0, 0, 8], fov: 38 }} dpr={[1, 1.6]}><Scene progress={progress} /></Canvas></div>
+        <div className="canvas-wrap" style={{ left: `${36 - progress * 36}vw`, right: `${-3 + progress * 3}vw` }}><Canvas camera={{ position: [0, 0, 8], fov: 38 }} dpr={[1, 1.6]}><Scene progress={progress} /></Canvas></div>
         <div className="hint" style={{ opacity: progress > 0.88 ? 0 : 1 - progress * 0.6 }}>
-          <span className="wheel" /> {progress < 0.62 ? "SCROLL TO ESTABLISH LINK" : "SELECT A SIGNAL · A / S / D"}
+          <span className="wheel" /> {progress < 0.62 ? copy.scroll : `${copy.signals} · A / S / D`}
+        </div>
+        <div className="hero-controls" data-visible={progress > 0.66}>
+          {buttonMap.map((item) => (
+            <button key={item.key} onClick={() => trigger(item.key)} style={{ "--signal-color": item.color } as CSSProperties}>
+              <i /> <span>{item.label}<small>{item.key === "call" ? (locale === "zh" ? "呼唤" : "COME CLOSER") : item.key === "play" ? (locale === "zh" ? "玩耍" : "HAPPY JUMP") : (locale === "zh" ? "情绪" : "SHARE A FEELING")}</small></span>
+            </button>
+          ))}
         </div>
         <div className="action-readout" data-visible={action !== "idle"}>{action === "call" ? "CALL · COMING CLOSER" : action === "play" ? "PLAY · HAPPY JUMP" : action === "feel" ? "FEEL · MOOD SIGNAL" : ""}</div>
         <div className="progress"><span style={{ transform: `scaleX(${progress})` }} /></div>
       </section>
-      <CareHub />
-      <PetRoom />
-      <ProductStory />
+      <CareHub locale={locale} />
+      <PetRoom locale={locale} />
+      <ProductStory locale={locale} />
       <section className="home-section">
         <div>
           <p className="eyebrow">PHASE 02 · SYSTEM READY</p>
