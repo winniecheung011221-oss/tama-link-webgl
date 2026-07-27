@@ -1,12 +1,13 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Float, RoundedBox, Sparkles } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Center, Environment, Float, RoundedBox, Sparkles, useGLTF } from "@react-three/drei";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import Image from "next/image";
 import { useTamaStore, type CareAction, type PetAction } from "../src/store/tamaStore";
 import { SCENE, THEME } from "../src/config/experience";
+import { ASSETS } from "../src/config/assetManifest";
 
 const buttonMap: Array<{ key: PetAction; color: string; x: number; label: string }> = [
   { key: "call", color: THEME.green, x: -0.72, label: "CALL" },
@@ -64,15 +65,25 @@ function Pet({ action }: { action: PetAction }) {
   );
 }
 
+class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
 function DeviceButton({ item, enabled }: { item: (typeof buttonMap)[number]; enabled: boolean }) {
-  const mesh = useRef<THREE.Mesh>(null);
+  const group = useRef<THREE.Group>(null);
   const [hover, setHover] = useState(false);
   const [pressed, setPressed] = useState(false);
   const trigger = useTamaStore((s) => s.trigger);
+  const url = ASSETS.device.buttons[item.key as keyof typeof ASSETS.device.buttons];
+  const { scene } = useGLTF(url);
+  const model = useMemo(() => scene.clone(true), [scene]);
   useFrame((_, delta) => {
-    if (!mesh.current) return;
-    mesh.current.position.z = THREE.MathUtils.damp(mesh.current.position.z, pressed ? 0.22 : 0.32, 18, delta);
-    mesh.current.scale.setScalar(THREE.MathUtils.damp(mesh.current.scale.x, hover ? 1.08 : 1, 14, delta));
+    if (!group.current) return;
+    group.current.position.z = THREE.MathUtils.damp(group.current.position.z, pressed ? 0.36 : 0.47, 18, delta);
+    const targetScale = hover ? 0.5 : 0.46;
+    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, targetScale, 14, delta));
   });
   const activate = () => {
     if (!enabled || pressed) return;
@@ -81,16 +92,40 @@ function DeviceButton({ item, enabled }: { item: (typeof buttonMap)[number]; ena
     window.setTimeout(() => setPressed(false), SCENE.pressMs);
   };
   return (
-    <mesh
-      ref={mesh}
-      position={[item.x, -1.28, 0.32]}
+    <group
+      ref={group}
+      position={[item.x, -1.48, 0.47]}
+      scale={0.46}
       onPointerEnter={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = enabled ? "pointer" : "default"; }}
       onPointerLeave={() => { setHover(false); document.body.style.cursor = "default"; }}
       onPointerDown={(e) => { e.stopPropagation(); activate(); }}
     >
-      <cylinderGeometry args={[0.23, 0.23, 0.18, 40]} />
-      <meshPhysicalMaterial color={item.color} emissive={item.color} emissiveIntensity={hover ? 1.5 : 0.35} transmission={0.35} roughness={0.22} />
-    </mesh>
+      <Center><primitive object={model} /></Center>
+      <pointLight color={item.color} intensity={hover ? 3 : 0.4} distance={1.2} />
+    </group>
+  );
+}
+
+function PlaceholderDevice() {
+  return (
+    <group>
+      <RoundedBox args={[3.4, 4.55, 0.78]} radius={0.76} smoothness={8}>
+        <meshPhysicalMaterial color="#84908c" transparent opacity={0.58} transmission={0.22} roughness={0.32} metalness={0.22} />
+      </RoundedBox>
+      <RoundedBox args={[2.72, 2.36, 0.12]} radius={0.34} position={[0, 0.38, 0.45]} smoothness={6}>
+        <meshStandardMaterial color="#101411" />
+      </RoundedBox>
+    </group>
+  );
+}
+
+function FormalDeviceModel() {
+  const { scene } = useGLTF(ASSETS.device.full.url);
+  const model = useMemo(() => scene.clone(true), [scene]);
+  return (
+    <group position={ASSETS.device.full.position} rotation={ASSETS.device.full.rotation} scale={ASSETS.device.full.scale}>
+      <Center><primitive object={model} /></Center>
+    </group>
   );
 }
 
@@ -110,19 +145,19 @@ function Device({ progress }: { progress: number }) {
   });
   return (
     <group ref={group} rotation={[-0.05, -0.42, 0]}>
-      <RoundedBox args={[3.4, 4.55, 0.78]} radius={0.76} smoothness={8}>
-        <meshPhysicalMaterial color="#84908c" transparent opacity={0.58} transmission={0.22} roughness={0.32} metalness={0.22} />
-      </RoundedBox>
-      <RoundedBox args={[2.72, 2.36, 0.12]} radius={0.34} position={[0, 0.38, 0.45]} smoothness={6}>
-        <meshStandardMaterial color="#101411" metalness={0.35} roughness={0.3} />
-      </RoundedBox>
-      <mesh position={[0, 0.38, 0.54]} onPointerDown={(e) => { e.stopPropagation(); wake(); }}>
-        <planeGeometry args={[2.35, 1.92]} />
-        <meshBasicMaterial color="#132015" />
+      <ModelErrorBoundary fallback={<PlaceholderDevice />}>
+        <Suspense fallback={<PlaceholderDevice />}><FormalDeviceModel /></Suspense>
+      </ModelErrorBoundary>
+      <mesh position={[0.12, 0.42, 0.55]} onPointerDown={(e) => { e.stopPropagation(); wake(); }}>
+        <planeGeometry args={[1.86, 1.62]} />
+        <meshBasicMaterial color="#071008" transparent opacity={0.05} />
       </mesh>
-      <Pet action={action} />
-      {buttonMap.map((item) => <DeviceButton key={item.key} item={item} enabled={progress > 0.64} />)}
-      <mesh position={[0, 2.38, 0]}><torusGeometry args={[0.32, 0.09, 16, 40]} /><meshStandardMaterial color="#a8b2ae" metalness={0.8} roughness={0.25} /></mesh>
+      <group scale={0.62} position={[0.12, 0.38, 0.58]}><Pet action={action} /></group>
+      {progress > 0.55 && buttonMap.map((item) => (
+        <ModelErrorBoundary key={item.key} fallback={<></>}>
+          <Suspense fallback={null}><DeviceButton item={item} enabled={progress > 0.64} /></Suspense>
+        </ModelErrorBoundary>
+      ))}
     </group>
   );
 }
@@ -197,8 +232,59 @@ function StarGame({ onClose }: { onClose: () => void }) {
   );
 }
 
+function PetHomeModel({ action }: { action: PetAction }) {
+  const { scene } = useGLTF(ASSETS.pet.primary);
+  const model = useMemo(() => scene.clone(true), [scene]);
+  const group = useRef<THREE.Group>(null);
+  useFrame(({ clock, pointer }, delta) => {
+    if (!group.current) return;
+    const t = clock.elapsedTime;
+    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, pointer.x * 0.18, 4, delta);
+    group.current.rotation.z = THREE.MathUtils.damp(group.current.rotation.z, action === "feel" ? Math.sin(t * 8) * 0.08 : 0, 8, delta);
+    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, action === "play" ? Math.abs(Math.sin(t * 7)) * 0.18 - 1.55 : -1.55, 10, delta);
+  });
+  return (
+    <group ref={group} scale={ASSETS.pet.scale} position={ASSETS.pet.position}>
+      <Center bottom><primitive object={model} /></Center>
+    </group>
+  );
+}
+
+function PropModel({ url }: { url: string }) {
+  const { scene } = useGLTF(url);
+  const model = useMemo(() => scene.clone(true), [scene]);
+  const group = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (group.current) group.current.rotation.y += delta * 0.65;
+  });
+  return <group ref={group} scale={2.2}><Center><primitive object={model} /></Center></group>;
+}
+
+function FoodPicker({ onChoose, onClose }: { onChoose: () => void; onClose: () => void }) {
+  const foods = [
+    { name: "STRAWBERRY", note: "+18 hunger · +3 bond", url: ASSETS.props.strawberry },
+    { name: "PUDDING", note: "+18 hunger · +3 bond", url: ASSETS.props.pudding },
+  ];
+  return (
+    <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Choose food">
+      <div className="food-window">
+        <header><div><p className="eyebrow">FEED MODE · PANTRY</p><h3>Choose a treat.</h3></div><button onClick={onClose} aria-label="Close food picker">×</button></header>
+        <div className="food-grid">
+          {foods.map((food) => (
+            <button key={food.name} onClick={onChoose}>
+              <div className="food-model"><Canvas camera={{ position: [0, 0, 3.2], fov: 35 }} dpr={[1, 1.4]}><ambientLight intensity={2} /><spotLight position={[3, 4, 4]} intensity={12} color={THEME.green} /><Suspense fallback={null}><PropModel url={food.url} /></Suspense></Canvas></div>
+              <b>{food.name}</b><small>{food.note}</small><span>GIVE TO MEOWCHI →</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CareHub() {
   const [gameOpen, setGameOpen] = useState(false);
+  const [foodOpen, setFoodOpen] = useState(false);
   const stats = useTamaStore((s) => s.stats);
   const bond = useTamaStore((s) => s.bond);
   const stardust = useTamaStore((s) => s.stardust);
@@ -251,13 +337,15 @@ function CareHub() {
 
         <div className="pet-stage">
           <div className={`pet-aura ${action !== "idle" ? "active" : ""}`} />
-          <Image
-            src={lastCare === "play" ? "/reference/phase-two/pet-three-quarter.png" : lastCare === "sleep" ? "/reference/phase-two/pet-side.png" : "/reference/phase-two/pet-front.png"}
-            alt="Meowchi, a soft lime-green cat companion"
-            width={1024}
-            height={1024}
-            priority
-          />
+          <div className="pet-canvas">
+            <Canvas camera={{ position: [0, 0.15, 4.6], fov: 34 }} dpr={[1, 1.5]}>
+              <ambientLight intensity={1.45} />
+              <spotLight position={[-3, 5, 4]} intensity={24} color={THEME.green} penumbra={1} />
+              <spotLight position={[4, 1, 3]} intensity={16} color={THEME.purple} penumbra={1} />
+              <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><PetHomeModel action={action} /></Suspense></ModelErrorBoundary>
+              <Environment preset="studio" />
+            </Canvas>
+          </div>
           <div className="pet-message" data-visible={action !== "idle"}>
             {lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}
           </div>
@@ -286,7 +374,7 @@ function CareHub() {
           <div className="panel actions-panel">
             <div className="panel-title"><span>↳</span> CARE ACTIONS</div>
             {careActions.map((item) => (
-              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
+              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : item.id === "feed" ? setFoodOpen(true) : care(item.id)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
                 <i>{item.icon}</i><span><b>{item.title}</b><small>{item.copy}</small></span>
               </button>
             ))}
@@ -300,6 +388,7 @@ function CareHub() {
         <button disabled={dailyClaimed || careCount < 3 || gameBest < 5} onClick={claimDaily}>{dailyClaimed ? "CLAIMED ✓" : "CLAIM +250"}</button>
       </div>
       {gameOpen && <StarGame onClose={() => setGameOpen(false)} />}
+      {foodOpen && <FoodPicker onClose={() => setFoodOpen(false)} onChoose={() => { care("feed"); setFoodOpen(false); }} />}
     </section>
   );
 }
