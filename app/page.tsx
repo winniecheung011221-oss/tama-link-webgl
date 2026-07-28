@@ -124,13 +124,13 @@ function Scene({ progress }: { progress: number }) {
     <>
       <color attach="background" args={[THEME.background]} />
       <fog attach="fog" args={[THEME.background, 7, 14]} />
-      <ambientLight intensity={0.12} color="#a7b6c2" />
-      <directionalLight position={[-4, 6, 5]} intensity={2.4} color="#e8f4ff" />
-      <spotLight position={[-4.5, 6, 5]} intensity={28} color="#eaf6ff" angle={0.3} penumbra={0.82} />
-      <spotLight position={[5.5, 3, -2.5]} intensity={16} color="#8c6bda" angle={0.46} penumbra={0.9} />
-      <pointLight position={[0, -3.1, 2.6]} intensity={5.2} color={THEME.green} distance={6.5} />
+      <ambientLight intensity={0.16} color="#b8c8d4" />
+      <directionalLight position={[-4, 6, 5]} intensity={3} color="#edf8ff" />
+      <spotLight position={[-4.5, 6, 5]} intensity={34} color="#eef9ff" angle={0.31} penumbra={0.82} />
+      <spotLight position={[5.5, 3, -2.5]} intensity={19} color="#9274e2" angle={0.48} penumbra={0.9} />
+      <pointLight position={[0, -3.1, 2.6]} intensity={6.4} color={THEME.green} distance={6.8} />
       <Device progress={progress} />
-      <Environment preset="studio" environmentIntensity={0.12} />
+      <Environment preset="studio" environmentIntensity={0.16} />
     </>
   );
 }
@@ -212,7 +212,7 @@ function StarGame({ onClose }: { onClose: () => void }) {
           ) : (
             <div className="game-result"><PetExpression index={score >= 8 ? 1 : 0} className="result-expression" /><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
           )}
-          <Image src="/reference/phase-two/pet-three-quarter.png" alt="" width={1024} height={1024} />
+          <Image src="/reference/phase-three/pet-play-cutout.png" alt="" width={1024} height={1024} />
         </div>
         <footer>CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND</footer>
       </div>
@@ -240,7 +240,7 @@ function PetHomeModel({ action }: { action: PetAction }) {
 
 function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
   const foods = [
-    { name: "STRAWBERRY", note: "Bright + playful", artwork: "/reference/phase-three/food-strawberry.png" },
+    { name: "STRAWBERRY", note: "Bright + playful", artwork: "/reference/phase-three/food-strawberry-slice.png" },
     { name: "PUDDING", note: "Soft + comforting", artwork: "/reference/phase-three/food-pudding.png" },
   ];
   const [selected, setSelected] = useState<(typeof foods)[number] | null>(null);
