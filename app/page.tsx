@@ -104,30 +104,16 @@ function Device({ progress }: { progress: number }) {
     group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -0.16 + progress * 0.18 + pointer.x * 0.035, 3.6, delta);
     group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.025 + pointer.y * 0.02, 3.6, delta);
     group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 0.48, 3.6, delta);
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, 1.2 + progress * 0.16, 3.6, delta));
+    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, 1.42 + progress * 0.12, 3.6, delta));
   });
   return (
-    <group ref={group} rotation={[-0.025, -0.16, 0]} scale={1.2}>
+    <group ref={group} rotation={[-0.025, -0.16, 0]} scale={1.42}>
       <ModelErrorBoundary fallback={<PlaceholderDevice />}>
         <Suspense fallback={<PlaceholderDevice />}><FormalDeviceModel /></Suspense>
       </ModelErrorBoundary>
-      <mesh position={[0.08, 0.42, 0.58]}>
-        <planeGeometry args={[1.72, 1.48]} />
-        <meshBasicMaterial color={THEME.green} transparent opacity={0.045} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {[
-        [-0.72, -1.26, THEME.green],
-        [0, -1.29, THEME.orange],
-        [0.72, -1.26, THEME.purple],
-      ].map(([x, y, color], index) => (
-        <mesh key={index} position={[x as number, y as number, 0.62]}>
-          <circleGeometry args={[0.27, 32]} />
-          <meshBasicMaterial color={color as string} transparent opacity={0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </mesh>
-      ))}
       <mesh position={[0.12, 0.42, 0.55]} onPointerDown={(e) => { e.stopPropagation(); wake(); }}>
         <planeGeometry args={[1.86, 1.62]} />
-        <meshBasicMaterial color="#071008" transparent opacity={0.05} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -138,13 +124,13 @@ function Scene({ progress }: { progress: number }) {
     <>
       <color attach="background" args={[THEME.background]} />
       <fog attach="fog" args={[THEME.background, 7, 14]} />
-      <ambientLight intensity={0.26} color="#c9d2d9" />
-      <directionalLight position={[-4, 6, 5]} intensity={1.6} color="#e8f3ff" />
-      <spotLight position={[-5, 5.5, 5]} intensity={18} color="#eaf5ff" angle={0.34} penumbra={0.92} />
-      <spotLight position={[5, 2.5, -2]} intensity={7.5} color="#9e80e8" angle={0.5} penumbra={1} />
-      <pointLight position={[0, -3.2, 2.2]} intensity={2.6} color={THEME.green} distance={6} />
+      <ambientLight intensity={0.12} color="#a7b6c2" />
+      <directionalLight position={[-4, 6, 5]} intensity={2.4} color="#e8f4ff" />
+      <spotLight position={[-4.5, 6, 5]} intensity={28} color="#eaf6ff" angle={0.3} penumbra={0.82} />
+      <spotLight position={[5.5, 3, -2.5]} intensity={16} color="#8c6bda" angle={0.46} penumbra={0.9} />
+      <pointLight position={[0, -3.1, 2.6]} intensity={5.2} color={THEME.green} distance={6.5} />
       <Device progress={progress} />
-      <Environment preset="studio" environmentIntensity={0.22} />
+      <Environment preset="studio" environmentIntensity={0.12} />
     </>
   );
 }
@@ -234,7 +220,7 @@ function PetHomeModel({ action }: { action: PetAction }) {
     group.current.position.y = THREE.MathUtils.damp(group.current.position.y, action === "play" ? Math.abs(Math.sin(t * 7)) * 0.12 - 0.15 : -0.15, 10, delta);
   });
   return (
-    <group ref={group} scale={2.15} position={[0, -0.15, 0]}>
+    <group ref={group} scale={1.18} position={[0, -0.2, 0]}>
       <Center><primitive object={model} /></Center>
     </group>
   );
@@ -473,6 +459,12 @@ function CareHub({ locale }: { locale: Locale }) {
 
         <div className="pet-stage">
           <div className={`pet-aura ${action !== "idle" ? "active" : ""}`} />
+          <div className="expression-orbit" aria-hidden="true">
+            <PetExpression index={0} className="orbit-expression orbit-a" />
+            <PetExpression index={1} className="orbit-expression orbit-b" />
+            <PetExpression index={6} className="orbit-expression orbit-c" />
+            <PetExpression index={3} className="orbit-expression orbit-d" />
+          </div>
           <div className="pet-canvas">
             <Canvas camera={{ position: [0, 0.15, 3.6], fov: 36 }} dpr={[1, 1.5]}>
               <ambientLight intensity={1.25} color="#fff8e8" />
@@ -585,7 +577,7 @@ function PixelCursor() {
 function RoomEnvironmentModel() {
   const { scene } = useGLTF(ASSETS.scenes.petHomeBlack);
   const model = useMemo(() => scene.clone(true), [scene]);
-  return <group scale={4.4} position={[0, -0.25, -0.45]} rotation={[0, -0.08, 0]}><Center><primitive object={model} /></Center></group>;
+  return <group scale={4.4} position={[-0.1, -0.25, -0.85]} rotation={[0, Math.PI / 4, 0]}><Center><primitive object={model} /></Center></group>;
 }
 
 function RoomPetModel() {
@@ -597,7 +589,7 @@ function RoomPetModel() {
     group.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.13;
     group.current.position.y = THREE.MathUtils.damp(group.current.position.y, -0.35 + Math.sin(clock.elapsedTime * 1.5) * 0.025, 4, delta);
   });
-  return <group ref={group} scale={1.55} position={[0.1, -0.35, 0.7]}><Center><primitive object={model} /></Center></group>;
+  return <group ref={group} scale={0.62} position={[-0.85, -0.48, 1.3]}><Center><primitive object={model} /></Center></group>;
 }
 
 function PetRoom({ locale }: { locale: Locale }) {
@@ -616,7 +608,7 @@ function PetRoom({ locale }: { locale: Locale }) {
         </div>
       </div>
       <div className="room-stage">
-        <Canvas camera={{ position: [0, 0.45, 5.5], fov: 42 }} dpr={[1, 1.5]}>
+        <Canvas camera={{ position: [0, 0.45, 6], fov: 42 }} dpr={[1, 1.5]}>
           <color attach="background" args={["#020403"]} />
           <ambientLight intensity={1.05} color="#fff6e8" />
           <spotLight position={[-4, 6, 4]} intensity={22} color={lighting.key} angle={0.5} penumbra={1} />
