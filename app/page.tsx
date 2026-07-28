@@ -142,13 +142,25 @@ const careActions: Array<{ id: CareAction; icon: string; title: string; copy: st
   { id: "sleep", icon: "☾", title: "SLEEP", copy: "Rest and recharge" },
 ];
 
+const expressionNames = [
+  "happy",
+  "excited",
+  "curious",
+  "sleepy",
+  "shy",
+  "sad",
+  "angry",
+  "loving",
+  "surprised",
+  "playful",
+] as const;
+
 function PetExpression({ index, className = "" }: { index: number; className?: string }) {
-  const column = index % 4;
-  const row = Math.floor(index / 4);
+  const expression = expressionNames[index] ?? expressionNames[0];
   return (
     <span
       className={`pet-expression ${className}`}
-      style={{ backgroundPosition: `${column * 33.333}% ${row * 100}%` }}
+      style={{ backgroundImage: `url("/reference/phase-three/expression-${expression}.png")` }}
       aria-hidden="true"
     />
   );
@@ -198,7 +210,7 @@ function StarGame({ onClose }: { onClose: () => void }) {
           {time > 0 ? (
             <button key={star.id} className="catch-star" style={{ left: `${star.x}%`, top: `${star.y}%` }} onClick={catchStar} aria-label="Catch star">★</button>
           ) : (
-            <div className="game-result"><PetExpression index={score >= 8 ? 2 : 1} className="result-expression" /><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
+            <div className="game-result"><PetExpression index={score >= 8 ? 1 : 0} className="result-expression" /><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
           )}
           <Image src="/reference/phase-two/pet-three-quarter.png" alt="" width={1024} height={1024} />
         </div>
@@ -226,20 +238,10 @@ function PetHomeModel({ action }: { action: PetAction }) {
   );
 }
 
-function PropModel({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
-  const model = useMemo(() => scene.clone(true), [scene]);
-  const group = useRef<THREE.Group>(null);
-  useFrame((_, delta) => {
-    if (group.current) group.current.rotation.y += delta * 0.65;
-  });
-  return <group ref={group} scale={1.15}><Center><primitive object={model} /></Center></group>;
-}
-
 function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
   const foods = [
-    { name: "STRAWBERRY", note: "Bright + playful", url: ASSETS.props.strawberry },
-    { name: "PUDDING", note: "Soft + comforting", url: ASSETS.props.pudding },
+    { name: "STRAWBERRY", note: "Bright + playful", artwork: "/reference/phase-three/food-strawberry.png" },
+    { name: "PUDDING", note: "Soft + comforting", artwork: "/reference/phase-three/food-pudding.png" },
   ];
   const [selected, setSelected] = useState<(typeof foods)[number] | null>(null);
   const [quality, setQuality] = useState<number | null>(null);
@@ -260,14 +262,14 @@ function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) 
           <div className="food-grid">
             {foods.map((food) => (
               <button key={food.name} onClick={() => setSelected(food)}>
-                <div className="food-model"><Canvas camera={{ position: [0, 0, 4.5], fov: 36 }} dpr={[1, 1.4]}><ambientLight intensity={1.5} color="#fff6e8" /><spotLight position={[3, 4, 4]} intensity={8} color="#fff0d0" /><Suspense fallback={null}><PropModel url={food.url} /></Suspense></Canvas></div>
+                <div className="food-model food-artwork"><Image src={food.artwork} alt={food.name} fill sizes="(max-width: 800px) 90vw, 390px" /></div>
                 <b>{food.name}</b><small>{food.note}</small><span>SELECT TREAT →</span>
               </button>
             ))}
           </div>
         ) : (
           <div className="timing-challenge">
-            <div className="selected-food"><div className="food-model"><Canvas camera={{ position: [0, 0, 4.5], fov: 36 }} dpr={[1, 1.4]}><ambientLight intensity={1.5} /><spotLight position={[3, 4, 4]} intensity={8} color="#fff0d0" /><Suspense fallback={null}><PropModel url={selected.url} /></Suspense></Canvas></div><b>{selected.name}</b></div>
+            <div className="selected-food"><div className="food-model food-artwork selected"><Image src={selected.artwork} alt={selected.name} fill sizes="(max-width: 800px) 90vw, 390px" /></div><b>{selected.name}</b></div>
             <div className="timing-panel">
               <p>STOP THE SIGNAL INSIDE THE LIME ZONE</p>
               <div className={`timing-meter ${quality !== null ? "stopped" : ""}`}><i /><span /></div>
@@ -452,7 +454,7 @@ function CareHub({ locale }: { locale: Locale }) {
           <div className="panel mood-panel">
             <div className="panel-title"><span>◉</span> {locale === "zh" ? "心情" : "MOOD"}</div>
             <p>{locale === "zh" ? (mood === "radiant" ? "闪闪发光" : mood === "content" ? "满足" : "好奇") : mood}</p>
-            <PetExpression index={mood === "radiant" ? 2 : mood === "content" ? 1 : 5} className="mood-expression" />
+            <PetExpression index={mood === "radiant" ? 7 : mood === "content" ? 0 : 2} className="mood-expression" />
             <small>Bond responds to every care action.</small>
           </div>
         </aside>
@@ -462,8 +464,8 @@ function CareHub({ locale }: { locale: Locale }) {
           <div className="expression-orbit" aria-hidden="true">
             <PetExpression index={0} className="orbit-expression orbit-a" />
             <PetExpression index={1} className="orbit-expression orbit-b" />
-            <PetExpression index={6} className="orbit-expression orbit-c" />
-            <PetExpression index={3} className="orbit-expression orbit-d" />
+            <PetExpression index={7} className="orbit-expression orbit-c" />
+            <PetExpression index={9} className="orbit-expression orbit-d" />
           </div>
           <div className="pet-canvas">
             <Canvas camera={{ position: [0, 0.15, 3.6], fov: 36 }} dpr={[1, 1.5]}>
@@ -475,7 +477,7 @@ function CareHub({ locale }: { locale: Locale }) {
             </Canvas>
           </div>
           <div className="pet-message" data-visible={action !== "idle"}>
-            <PetExpression index={lastCare === "feed" ? 3 : lastCare === "play" ? 2 : lastCare === "clean" ? 1 : lastCare === "sleep" ? 6 : 0} className="feedback-expression" />
+            <PetExpression index={lastCare === "feed" ? 7 : lastCare === "play" ? 9 : lastCare === "clean" ? 0 : lastCare === "sleep" ? 3 : 2} className="feedback-expression" />
             <span>{lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}</span>
           </div>
           <div className="bond-card">
@@ -539,7 +541,7 @@ function CareHub({ locale }: { locale: Locale }) {
       {sleepOpen && <SleepChallenge onClose={() => setSleepOpen(false)} onComplete={(quality) => completeCare("sleep", quality)} />}
       {eventNotice && (
         <div className={`random-event ${eventNotice}`}>
-          <PetExpression index={eventNotice === "gift" ? 3 : eventNotice === "meteor" ? 4 : 5} className="event-expression" />
+          <PetExpression index={eventNotice === "gift" ? 8 : eventNotice === "meteor" ? 1 : 2} className="event-expression" />
           <div><small>RARE SIGNAL DETECTED</small><b>{eventNotice === "gift" ? "MYSTERY GIFT" : eventNotice === "meteor" ? "PIXEL METEOR" : "TINY VISITOR"}</b><span>Bonus stardust · energy +12 · bond +2</span></div>
           <button onClick={() => setEventNotice(null)} aria-label="Dismiss event">×</button>
         </div>
