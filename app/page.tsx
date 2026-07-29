@@ -10,17 +10,17 @@ import { SCENE, THEME } from "../src/config/experience";
 import { ASSETS } from "../src/config/assetManifest";
 
 const buttonMap: Array<{ key: PetAction; color: string; x: number; label: string }> = [
-  { key: "call", color: THEME.green, x: -0.72, label: "CALL" },
+  { key: "call", color: THEME.green, x: -0.72, label: "CARE" },
   { key: "play", color: THEME.orange, x: 0, label: "PLAY" },
   { key: "feel", color: THEME.purple, x: 0.72, label: "FEEL" },
 ];
 type Locale = "en" | "zh";
 const UI = {
   en: {
-    heroKicker: "A POCKET-SIZED DIGITAL COMPANION",
-    heroTitleA: "CARE IS",
-    heroTitleB: "A SIGNAL.",
-    heroCopy: "A living connection, waiting on the other side of the glass.",
+    heroKicker: "A WEBGL DIGITAL COMPANION",
+    heroTitleA: "A SIGNAL.",
+    heroTitleB: "ALIVE.",
+    heroCopy: "Scroll closer. Turn the device. Meet the companion waiting inside.",
     scroll: "SCROLL TO CONNECT",
     signals: "CHOOSE A SIGNAL",
     petKicker: "PET HOME · LIVE CARE LOOP",
@@ -33,10 +33,10 @@ const UI = {
     storyTitleC: "alive.",
   },
   zh: {
-    heroKicker: "口袋里的数字陪伴",
-    heroTitleA: "关心就是",
-    heroTitleB: "一种信号。",
-    heroCopy: "玻璃的另一侧，有个小生命正在等待与你连接。",
+    heroKicker: "浏览器里的数字陪伴",
+    heroTitleA: "信号。",
+    heroTitleB: "正在苏醒。",
+    heroCopy: "滚动靠近，转动设备，认识屏幕里等待你的伙伴。",
     scroll: "滚动以建立连接",
     signals: "选择一个互动信号",
     petKicker: "宠物主页 · 实时养成",
@@ -98,16 +98,39 @@ function FormalDeviceModel() {
 
 function Device({ progress }: { progress: number }) {
   const group = useRef<THREE.Group>(null);
+  const dragging = useRef(false);
+  const dragYaw = useRef(0);
+  const lastPointerX = useRef(0);
   const wake = useTamaStore((s) => s.wake);
   useFrame(({ pointer }, delta) => {
     if (!group.current) return;
-    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -0.16 + progress * 0.18 + pointer.x * 0.035, 3.6, delta);
+    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -0.16 + progress * 0.18 + pointer.x * 0.035 + dragYaw.current, 3.6, delta);
     group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.025 + pointer.y * 0.02, 3.6, delta);
     group.current.position.z = THREE.MathUtils.damp(group.current.position.z, progress * 0.48, 3.6, delta);
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, 1.42 + progress * 0.12, 3.6, delta));
+    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, 1.55 + progress * 0.14, 3.6, delta));
   });
   return (
-    <group ref={group} rotation={[-0.025, -0.16, 0]} scale={1.42}>
+    <group
+      ref={group}
+      rotation={[-0.025, -0.16, 0]}
+      scale={1.55}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        dragging.current = true;
+        lastPointerX.current = event.clientX;
+        (event.target as Element).setPointerCapture?.(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (!dragging.current) return;
+        const deltaX = event.clientX - lastPointerX.current;
+        lastPointerX.current = event.clientX;
+        dragYaw.current += THREE.MathUtils.clamp(deltaX * 0.008, -0.18, 0.18);
+      }}
+      onPointerUp={(event) => {
+        dragging.current = false;
+        (event.target as Element).releasePointerCapture?.(event.pointerId);
+      }}
+    >
       <ModelErrorBoundary fallback={<PlaceholderDevice />}>
         <Suspense fallback={<PlaceholderDevice />}><FormalDeviceModel /></Suspense>
       </ModelErrorBoundary>
@@ -153,6 +176,14 @@ const expressionNames = [
   "loving",
   "surprised",
   "playful",
+] as const;
+
+const bondStages = [
+  "NEW SIGNAL",
+  "FIRST FRIEND",
+  "DIGITAL COMPANION",
+  "MEMORY KEEPER",
+  "SOUL LINK",
 ] as const;
 
 function PetExpression({ index, className = "" }: { index: number; className?: string }) {
@@ -395,6 +426,7 @@ function CareHub({ locale }: { locale: Locale }) {
     }
   };
   const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
+  const bondLevel = Math.min(5, Math.max(1, Math.ceil(bond / 20)));
   const careCopy = locale === "zh" ? {
     feed: ["喂食", "选择点心，填饱肚子"],
     play: ["玩耍", "进入接星星小游戏"],
@@ -482,7 +514,7 @@ function CareHub({ locale }: { locale: Locale }) {
           </div>
           <div className="bond-card">
             <span>♥</span>
-            <div><small>BOND LV. 04</small><div className="bond-track"><i style={{ width: `${bond}%` }} /></div></div>
+            <div><small>BOND LV. {String(bondLevel).padStart(2, "0")} · {bondStages[bondLevel - 1]}</small><div className="bond-track"><i style={{ width: `${bond}%` }} /></div></div>
             <strong>{bond}%</strong>
           </div>
         </div>
@@ -576,51 +608,45 @@ function PixelCursor() {
   );
 }
 
-function RoomEnvironmentModel() {
-  const { scene } = useGLTF(ASSETS.scenes.petHomeBlack);
+type RoomMode = "black" | "white";
+
+function RoomEnvironmentModel({ mode }: { mode: RoomMode }) {
+  const { scene } = useGLTF(mode === "black" ? ASSETS.scenes.petHomeBlack : ASSETS.scenes.petHomeWhite);
   const model = useMemo(() => scene.clone(true), [scene]);
   return <group scale={4.4} position={[-0.1, -0.25, -0.85]} rotation={[0, Math.PI / 4, 0]}><Center><primitive object={model} /></Center></group>;
 }
 
-function RoomPetModel() {
-  const { scene } = useGLTF(ASSETS.pet.primary);
-  const model = useMemo(() => scene.clone(true), [scene]);
-  const group = useRef<THREE.Group>(null);
-  useFrame(({ clock }, delta) => {
-    if (!group.current) return;
-    group.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.13;
-    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, -0.35 + Math.sin(clock.elapsedTime * 1.5) * 0.025, 4, delta);
-  });
-  return <group ref={group} scale={0.62} position={[-0.85, -0.48, 1.3]}><Center><primitive object={model} /></Center></group>;
-}
-
 function PetRoom({ locale }: { locale: Locale }) {
-  const [theme, setTheme] = useState<"lab" | "night" | "garden">("night");
-  const lighting = {
-    lab: { key: "#c9ecff", fill: "#b8ff5f", label: "PIXEL LAB" },
-    night: { key: "#aa7be4", fill: "#8bbdff", label: "SOFT NIGHT" },
-    garden: { key: "#b8ff5f", fill: "#ffe180", label: "LIME GARDEN" },
-  }[theme];
+  const [mode, setMode] = useState<RoomMode>("black");
+  const lighting = mode === "black"
+    ? { key: "#a887ff", fill: "#b8ff5f", label: "BLACK ROOM", bonus: "+ CURIOUS" }
+    : { key: "#fff1cf", fill: "#b8d9ff", label: "WHITE ROOM", bonus: "+ HAPPY" };
   return (
-    <section className={`pet-room theme-${theme}`} id="room">
+    <section className={`pet-room theme-${mode}`} id="room">
       <div className="room-head">
         <div><p className="eyebrow">{UI[locale].roomKicker}</p><h2>{UI[locale].roomTitle}</h2></div>
         <div className="theme-switcher">
-          {(["lab", "night", "garden"] as const).map((item) => <button key={item} className={theme === item ? "active" : ""} onClick={() => setTheme(item)}>{item === "lab" ? "PIXEL LAB" : item === "night" ? "SOFT NIGHT" : "LIME GARDEN"}</button>)}
+          {(["black", "white"] as const).map((item) => (
+            <button key={item} className={mode === item ? "active" : ""} onClick={() => setMode(item)}>
+              {item === "black" ? (locale === "zh" ? "黑色空间" : "BLACK MODE") : (locale === "zh" ? "白色空间" : "WHITE MODE")}
+            </button>
+          ))}
         </div>
       </div>
       <div className="room-stage">
         <Canvas camera={{ position: [0, 0.45, 6], fov: 42 }} dpr={[1, 1.5]}>
-          <color attach="background" args={["#020403"]} />
-          <ambientLight intensity={1.05} color="#fff6e8" />
+          <color attach="background" args={[mode === "black" ? "#020403" : "#e9ede6"]} />
+          <ambientLight intensity={mode === "black" ? 0.72 : 1.32} color={mode === "black" ? "#d9d4ff" : "#fff8e8"} />
           <spotLight position={[-4, 6, 4]} intensity={22} color={lighting.key} angle={0.5} penumbra={1} />
           <spotLight position={[5, 2, 3]} intensity={10} color={lighting.fill} angle={0.5} penumbra={1} />
-          <pointLight position={[0, 0.2, 2]} intensity={6} color="#fff1d5" distance={5} />
-          <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><RoomEnvironmentModel /><RoomPetModel /></Suspense></ModelErrorBoundary>
-          <Environment preset="apartment" environmentIntensity={0.38} />
+          <pointLight position={[0, 0.2, 2]} intensity={mode === "black" ? 5 : 8} color="#fff1d5" distance={5} />
+          <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><RoomEnvironmentModel key={mode} mode={mode} /></Suspense></ModelErrorBoundary>
+          <Environment preset={mode === "black" ? "night" : "apartment"} environmentIntensity={mode === "black" ? 0.28 : 0.48} />
         </Canvas>
+        <Image className="room-pet-sprite" src="/reference/phase-three/pet-play-cutout.png" alt="Meowchi in the selected room" width={1024} height={1024} />
         <div className="room-badge"><i /> {lighting.label}<small>MODEL SPACE ACTIVE</small></div>
-        <div className="room-controls"><span>DRAG TO LOOK</span><span>THEME SAVED LOCALLY</span></div>
+        <div className="room-effect">{lighting.bonus}<small>{mode === "black" ? "NIGHT CURIOSITY BOOST" : "COZY MOOD BOOST"}</small></div>
+        <div className="room-controls"><span>45° ROOM VIEW</span><span>SPACE AFFECTS MOOD</span></div>
       </div>
     </section>
   );
@@ -649,7 +675,7 @@ function ProductStory({ locale }: { locale: Locale }) {
 }
 
 export default function Home() {
-  const [locale] = useState<Locale>(() => {
+  const [locale, setLocale] = useState<Locale>(() => {
     if (typeof window === "undefined") return "en";
     const saved = window.localStorage.getItem("tama-link-locale");
     return saved === "zh" || saved === "en" ? saved : "en";
@@ -658,11 +684,16 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const action = useTamaStore((s) => s.action);
   const awake = useTamaStore((s) => s.awake);
+  const bond = useTamaStore((s) => s.bond);
   const trigger = useTamaStore((s) => s.trigger);
   const reset = useTamaStore((s) => s.reset);
   const frame = useRef<number | null>(null);
   const reduced = useMemo(() => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches, []);
   const copy = UI[locale];
+  const changeLocale = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    window.localStorage.setItem("tama-link-locale", nextLocale);
+  };
 
   useEffect(() => {
     const animate = () => {
@@ -698,25 +729,35 @@ export default function Home() {
       <section className="hero">
         <header className="topbar">
           <a className="brand" href="#top" aria-label="TAMA LINK home">TAMA LINK</a>
-          <div className="top-actions"><div className="status"><i className="online" /> LINK ACTIVE</div><span className="sound-label">SOUND</span></div>
+          <div className="top-actions">
+            <div className="locale-switch" aria-label="Language">
+              <button className={locale === "en" ? "active" : ""} onClick={() => changeLocale("en")}>EN</button>
+              <button className={locale === "zh" ? "active" : ""} onClick={() => changeLocale("zh")}>中文</button>
+            </div>
+            <button className="connect-button" onClick={() => setTarget(1)}><i /> {progress > 0.92 ? "CONNECTED" : "CONNECT"}</button>
+          </div>
         </header>
         <div className="copy" style={{ opacity: 1 - progress * 1.35 }}>
           <p className="eyebrow">{copy.heroKicker}</p>
           <h1>{copy.heroTitleA}<br /><em>{copy.heroTitleB}</em></h1>
           <p className="lede">{copy.heroCopy}</p>
-          <div className="scroll-cue" style={{ opacity: Math.max(0, 1 - progress * 8) }}><span>SCROLL TO CONNECT</span><b>↓</b></div>
+          <div className="scroll-cue" style={{ opacity: Math.max(0, 1 - progress * 8) }}><span>{copy.scroll}</span><b>↓</b></div>
         </div>
         <div className="signal-thread" style={{ opacity: Math.max(0, 0.38 - progress * 0.6) }} />
         <div className="canvas-wrap"><Canvas camera={{ position: [0, 0, 8], fov: 38 }} dpr={[1, 1.6]}><Scene progress={progress} /></Canvas></div>
-        <div className="near-hint" data-visible={progress > 0.62}><span>PRESS A BUTTON</span><b>CALL · PLAY · FEEL</b></div>
+        <div className="device-readout" style={{ opacity: Math.max(0.2, 1 - progress * 0.7) }}>
+          <small>COMPANION SIGNAL</small><b>MEOWCHI · ONLINE</b><span>BOND {bond}%</span>
+        </div>
+        <div className="object-cue" style={{ opacity: Math.max(0, 1 - progress * 2.4) }}><span>DRAG TO ROTATE</span><i /> <span>SCROLL TO ENTER</span></div>
+        <div className="near-hint" data-visible={progress > 0.62}><span>PRESS A BUTTON</span><b>CARE · PLAY · FEEL</b></div>
         <div className="hero-controls" data-visible={progress > 0.66}>
           {buttonMap.map((item) => (
             <button key={item.key} onClick={() => trigger(item.key)} style={{ "--signal-color": item.color } as CSSProperties}>
-              <i /> <span>{item.label}<small>{item.key === "call" ? (locale === "zh" ? "呼唤" : "COME CLOSER") : item.key === "play" ? (locale === "zh" ? "玩耍" : "HAPPY JUMP") : (locale === "zh" ? "情绪" : "SHARE A FEELING")}</small></span>
+              <i /> <span>{item.label}<small>{item.key === "call" ? (locale === "zh" ? "照顾" : "CARE SIGNAL") : item.key === "play" ? (locale === "zh" ? "玩耍" : "HAPPY JUMP") : (locale === "zh" ? "情绪" : "SHARE A FEELING")}</small></span>
             </button>
           ))}
         </div>
-        <div className="action-readout" data-visible={action !== "idle"}>{action === "call" ? "CALL · COMING CLOSER" : action === "play" ? "PLAY · HAPPY JUMP" : action === "feel" ? "FEEL · MOOD SIGNAL" : ""}</div>
+        <div className="action-readout" data-visible={action !== "idle"}>{action === "call" ? "CARE · SIGNAL RECEIVED" : action === "play" ? "PLAY · HAPPY JUMP" : action === "feel" ? "FEEL · MOOD SIGNAL" : ""}</div>
         <div className="progress"><span style={{ transform: `scaleX(${progress})` }} /></div>
       </section>
       <CareHub locale={locale} />

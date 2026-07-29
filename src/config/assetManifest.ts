@@ -25,6 +25,7 @@ export const ASSETS = {
   },
   scenes: {
     petHomeBlack: "/models/scenes/pet-home-black.glb",
+    petHomeWhite: "/models/scenes/pet-home-white.glb",
   },
 } as const;
 
