@@ -244,7 +244,7 @@ function StarGame({ onClose }: { onClose: () => void }) {
           ) : (
             <div className="game-result"><PetExpression index={score >= 8 ? 1 : 0} className="result-expression" /><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
           )}
-          <Image src="/reference/phase-three/pet-play-cutout.png" alt="" width={1024} height={1024} />
+          <Image src="/reference/phase-three/expression-playful-cutout.png" alt="" width={1024} height={1024} />
         </div>
         <footer>CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND</footer>
       </div>
@@ -330,7 +330,7 @@ function CleanChallenge({ onComplete, onClose }: { onComplete: (quality: number)
         <header><div><p className="eyebrow">CLEAN MODE · SIGNAL POLISH</p><h3>Tap every glitch spot.</h3></div><button onClick={onClose} aria-label="Close clean game">×</button></header>
         <div className="care-game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>CLEARED <b>{cleanSpots.length - remaining.length}/{cleanSpots.length}</b></span></div>
         <div className="clean-field">
-          <Image src="/reference/phase-two/pet-front.png" alt="Meowchi" width={1024} height={1024} />
+          <Image src="/reference/phase-three/expression-happy-cutout.png" alt="Meowchi" width={1024} height={1024} />
           {remaining.map((index) => <button key={index} style={{ left: `${cleanSpots[index].left}%`, top: `${cleanSpots[index].top}%` }} onClick={() => clearSpot(index)} aria-label="Clean glitch spot"><i /></button>)}
           {quality !== null && <div className="challenge-result floating"><strong>{remaining.length === 0 ? "SIGNAL SPARKLING!" : "PARTIAL CLEAN"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>COMPLETE CLEAN</button></div>}
         </div>
@@ -722,7 +722,7 @@ function PetRoom({ locale }: { locale: Locale }) {
           <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><RoomEnvironmentModel key={mode} mode={mode} /></Suspense></ModelErrorBoundary>
           <Environment preset={mode === "black" ? "night" : "apartment"} environmentIntensity={mode === "black" ? 0.28 : 0.48} />
         </Canvas>
-        <Image className="room-pet-sprite" src="/reference/phase-three/pet-play-cutout.png" alt="Meowchi in the selected room" width={1024} height={1024} />
+        <Image className="room-pet-sprite" src="/reference/phase-three/expression-happy-cutout.png" alt="Meowchi in the selected room" width={1024} height={1024} />
         <div className="room-badge"><i /> {lighting.label}<small>MODEL SPACE ACTIVE</small></div>
         <div className="room-effect">{lighting.bonus}<small>{mode === "black" ? "NIGHT CURIOSITY BOOST" : "COZY MOOD BOOST"}</small></div>
         <div className="room-controls"><span>45° ROOM VIEW</span><span>SPACE AFFECTS MOOD</span></div>
@@ -746,7 +746,7 @@ function ProductStory({ locale }: { locale: Locale }) {
         </div>
       </div>
       <div className="device-gallery">
-        <Image src="/reference/phase-two/device-back-reference.png" alt="TAMA LINK transparent device back view" width={1024} height={1365} />
+        <Image src="/reference/phase-two/device-back-reference.webp" alt="TAMA LINK transparent device back view" width={1024} height={1365} />
         <div className="gallery-label"><span>360° OBJECT STUDY</span><small>MODEL IN PRODUCTION</small></div>
       </div>
     </section>

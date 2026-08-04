@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "TAMA LINK — Digital Companion",
     description: "Care is a signal.",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "TAMA LINK digital companion" }],
+    images: [{ url: "/og.webp", width: 1200, height: 630, alt: "TAMA LINK digital companion" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "TAMA LINK — Digital Companion",
     description: "Care is a signal.",
-    images: ["/og.png"],
+    images: ["/og.webp"],
   },
 };
 
