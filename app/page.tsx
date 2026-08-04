@@ -934,13 +934,13 @@ export default function Home() {
       <ProjectRationale locale={locale} />
       <section className="home-section">
         <div>
-          <p className="eyebrow">PHASE 02 · SYSTEM READY</p>
-          <h2>{awake ? "Your care loop\nis now active." : "Tap the screen\nto wake your pet."}</h2>
-          <p>Feed, play, clean and rest now update Meowchi’s persistent state. Formal 3D models can replace the visual layer without rewriting this loop.</p>
-          <button onClick={reset}>RESET LINK</button>
+          <p className="eyebrow">{locale === "zh" ? "产品原则 · 陪伴而不施压" : "PRODUCT PRINCIPLE · CARE WITHOUT PRESSURE"}</p>
+          <h2>{locale === "zh" ? (awake ? "它会记得\n你如何回应。" : "触摸屏幕，\n建立第一次连接。") : (awake ? "It remembers\nhow you respond." : "Touch the screen\nto begin a bond.")}</h2>
+          <p>{locale === "zh" ? "触摸、情绪识别、呼吸安抚、空间选择和回忆收集组成一条短而完整的陪伴循环。进度保存在本地，随时可以清除。" : "Touch, emotion reading, breathing comfort, room choice and memory collection form one short companion loop. Progress stays local and can be cleared at any time."}</p>
+          <button onClick={reset}>{locale === "zh" ? "清除本地回忆" : "RESET LOCAL MEMORY"}</button>
         </div>
         <div className="signal-grid">
-          {buttonMap.map((item, index) => <article key={item.key}><span>0{index + 1}</span><b style={{ color: item.color }}>{item.label}</b><p>{index === 0 ? "Come closer" : index === 1 ? "Jump & play" : "Share a feeling"}</p></article>)}
+          {buttonMap.map((item, index) => <article key={item.key}><span>0{index + 1}</span><b style={{ color: item.color }}>{item.label}</b><p>{locale === "zh" ? ["回应需要", "释放压力", "读懂感受"][index] : ["Respond to a need", "Release tension", "Read a feeling"][index]}</p></article>)}
         </div>
       </section>
     </main>
