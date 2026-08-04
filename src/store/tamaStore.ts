@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import { SCENE } from "../config/experience";
 
 export type PetAction = "idle" | "call" | "play" | "feel";
-export type CareAction = "feed" | "play" | "clean" | "sleep";
+export type CareAction = "feed" | "play" | "comfort" | "clean" | "sleep";
 export type Charm = "lucky-star" | "glow-cube" | "rainy-day";
 export type RandomEvent = "gift" | "meteor" | "visitor";
 
@@ -34,6 +34,7 @@ type TamaState = {
   wake: () => void;
   trigger: (action: PetAction) => void;
   care: (action: CareAction, quality?: number) => void;
+  receiveTouch: () => void;
   triggerRandomEvent: (event: RandomEvent) => void;
   equipCharm: (charm: Charm) => void;
   finishGame: (score: number) => void;
@@ -75,12 +76,13 @@ export const useTamaStore = create<TamaState>()(
         const current = get();
         if (current.action !== "idle") return;
         const quality = Math.max(0.5, Math.min(1.5, rawQuality));
-        const requestOrder: CareAction[] = ["feed", "play", "clean", "sleep"];
+        const requestOrder: CareAction[] = ["feed", "comfort", "play", "clean", "sleep"];
         const requestMatched = current.request === careAction;
         const combo = current.lastCare && current.lastCare !== careAction ? Math.min(4, current.careCombo + 1) : 1;
         const delta: Record<CareAction, Partial<PetStats>> = {
           feed: { hunger: 18 },
           play: { fun: 14, sleep: -4 },
+          comfort: { fun: 8, sleep: 8 },
           clean: { clean: 22 },
           sleep: { sleep: 24, hunger: -3 },
         };
@@ -103,6 +105,14 @@ export const useTamaStore = create<TamaState>()(
         });
         clearTimeout(actionTimer);
         actionTimer = setTimeout(() => set({ action: "idle" }), SCENE.actionMs);
+      },
+      receiveTouch: () => {
+        const current = get();
+        set({
+          awake: true,
+          bond: Math.min(100, current.bond + 1),
+          signalEnergy: Math.min(100, current.signalEnergy + 2),
+        });
       },
       triggerRandomEvent: (lastEvent) => {
         const current = get();

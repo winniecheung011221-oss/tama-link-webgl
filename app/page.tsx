@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Center, Environment, RoundedBox, useGLTF } from "@react-three/drei";
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import * as THREE from "three";
 import Image from "next/image";
 import { useTamaStore, type CareAction, type PetAction } from "../src/store/tamaStore";
@@ -159,9 +159,10 @@ function Scene({ progress }: { progress: number }) {
 }
 
 const careActions: Array<{ id: CareAction; icon: string; title: string; copy: string }> = [
-  { id: "feed", icon: "♜", title: "FEED", copy: "Fill that tiny tummy" },
-  { id: "play", icon: "◇", title: "PLAY", copy: "Turn energy into joy" },
-  { id: "clean", icon: "✦", title: "CLEAN", copy: "Fresh fur, clear signal" },
+  { id: "feed", icon: "◆", title: "FEED", copy: "Fill that tiny tummy" },
+  { id: "play", icon: "✦", title: "PLAY", copy: "Turn energy into joy" },
+  { id: "comfort", icon: "≈", title: "COMFORT", copy: "Read the feeling, soften the signal" },
+  { id: "clean", icon: "✧", title: "CLEAN", copy: "Fresh fur, clear signal" },
   { id: "sleep", icon: "☾", title: "SLEEP", copy: "Rest and recharge" },
 ];
 
@@ -191,7 +192,7 @@ function PetExpression({ index, className = "" }: { index: number; className?: s
   return (
     <span
       className={`pet-expression ${className}`}
-      style={{ backgroundImage: `url("/reference/phase-three/expression-${expression}.png")` }}
+      style={{ backgroundImage: `url("/reference/phase-three/expression-${expression}-cutout.png")` }}
       aria-hidden="true"
     />
   );
@@ -248,24 +249,6 @@ function StarGame({ onClose }: { onClose: () => void }) {
         <footer>CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND</footer>
       </div>
     </div>
-  );
-}
-
-function PetHomeModel({ action }: { action: PetAction }) {
-  const { scene } = useGLTF(ASSETS.pet.primary);
-  const model = useMemo(() => scene.clone(true), [scene]);
-  const group = useRef<THREE.Group>(null);
-  useFrame(({ clock, pointer }, delta) => {
-    if (!group.current) return;
-    const t = clock.elapsedTime;
-    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, pointer.x * 0.18, 4, delta);
-    group.current.rotation.z = THREE.MathUtils.damp(group.current.rotation.z, action === "feel" ? Math.sin(t * 8) * 0.08 : 0, 8, delta);
-    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, action === "play" ? Math.abs(Math.sin(t * 7)) * 0.12 - 0.15 : -0.15, 10, delta);
-  });
-  return (
-    <group ref={group} scale={1.18} position={[0, -0.2, 0]}>
-      <Center><primitive object={model} /></Center>
-    </group>
   );
 }
 
@@ -387,9 +370,109 @@ function SleepChallenge({ onComplete, onClose }: { onComplete: (quality: number)
   );
 }
 
+const comfortMoods = [
+  { key: "sleepy", index: 3, label: "TIRED", zh: "困倦", hint: "Slow down and stay close." },
+  { key: "shy", index: 4, label: "SHY", zh: "害羞", hint: "Give a little space, not silence." },
+  { key: "sad", index: 5, label: "SAD", zh: "难过", hint: "A gentle signal is enough." },
+  { key: "angry", index: 6, label: "OVERLOADED", zh: "过载", hint: "Let the feeling pass before fixing it." },
+  { key: "curious", index: 2, label: "CURIOUS", zh: "好奇", hint: "Follow the small spark." },
+] as const;
+
+function ComfortChallenge({ locale, onComplete, onClose }: { locale: Locale; onComplete: (quality: number) => void; onClose: () => void }) {
+  const [target] = useState(() => comfortMoods[Math.floor(Math.random() * comfortMoods.length)]);
+  const [phase, setPhase] = useState<"read" | "soothe" | "done">("read");
+  const [wrong, setWrong] = useState<string | null>(null);
+  const [pulses, setPulses] = useState(0);
+  const choices = useMemo(() => {
+    const targetIndex = comfortMoods.findIndex((item) => item.key === target.key);
+    const others = [comfortMoods[(targetIndex + 2) % comfortMoods.length], comfortMoods[(targetIndex + 3) % comfortMoods.length]];
+    return targetIndex % 2 === 0 ? [others[0], target, others[1]] : [target, others[0], others[1]];
+  }, [target]);
+  const chooseMood = (key: string) => {
+    if (key === target.key) {
+      setWrong(null);
+      setPhase("soothe");
+    } else {
+      setWrong(key);
+      window.setTimeout(() => setWrong(null), 700);
+    }
+  };
+  const soothe = () => {
+    const next = pulses + 1;
+    setPulses(next);
+    if (next >= 4) setPhase("done");
+  };
+  return (
+    <div className="game-overlay comfort-overlay" role="dialog" aria-modal="true" aria-label="Emotional comfort ritual">
+      <div className="comfort-window">
+        <header><div><p className="eyebrow">FEEL MODE · EMOTION TUNING</p><h3>{phase === "read" ? (locale === "zh" ? "先读懂它的情绪。" : "Read the feeling first.") : phase === "soothe" ? (locale === "zh" ? "跟着呼吸，轻轻安抚。" : "Stay with the breathing signal.") : (locale === "zh" ? "信号慢下来了。" : "The signal feels softer.")}</h3></div><button onClick={onClose} aria-label="Close comfort ritual">×</button></header>
+        <div className={`comfort-body phase-${phase}`}>
+          <div className="comfort-pet">
+            <PetExpression index={phase === "done" ? 7 : target.index} className="comfort-expression" />
+            <div className="comfort-waves"><i /><i /><i /></div>
+            <small>{phase === "done" ? "SAFE SIGNAL · RECEIVED" : target.hint}</small>
+          </div>
+          {phase === "read" && <div className="mood-choice"><p>{locale === "zh" ? "你觉得 Meowchi 现在是什么感受？" : "What do you think Meowchi is feeling?"}</p>{choices.map((choice) => <button key={choice.key} className={wrong === choice.key ? "wrong" : ""} onClick={() => chooseMood(choice.key)}><span>{choice.index === 3 ? "— ω —" : choice.index === 5 ? "T_T" : choice.index === 6 ? ">:(" : choice.index === 4 ? "> <" : "o o"}</span><b>{locale === "zh" ? choice.zh : choice.label}</b></button>)}</div>}
+          {phase === "soothe" && <div className="soothe-ritual"><p>{locale === "zh" ? "每次光环收拢时，点一下。" : "Tap as each slow breath arrives."}</p><button onClick={soothe} className="soothe-orb"><i /><span>{pulses + 1} / 4</span></button><div className="soothe-progress">{[0, 1, 2, 3].map((item) => <i key={item} className={item < pulses ? "done" : ""} />)}</div></div>}
+          {phase === "done" && <div className="comfort-complete"><strong>{locale === "zh" ? "你没有替它解决情绪，只是陪它待了一会儿。" : "You did not fix the feeling. You stayed with it."}</strong><small>BOND + · SIGNAL ENERGY + · MEMORY TRACE</small><button onClick={() => onComplete(1.35)}>{locale === "zh" ? "保存这次安抚" : "KEEP THIS MOMENT"}</button></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TouchPet({ locale, action }: { locale: Locale; action: PetAction }) {
+  const receiveTouch = useTamaStore((state) => state.receiveTouch);
+  const [expression, setExpression] = useState(2);
+  const [message, setMessage] = useState(locale === "zh" ? "摸摸头、脸颊或小肚子" : "TOUCH HEAD · CHEEK · TUMMY");
+  const [ripple, setRipple] = useState(0);
+  const lastReward = useRef(0);
+  const visibleExpression = action === "play" ? 9 : action === "feel" ? 7 : action === "call" ? 1 : expression;
+  const touch = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    const zone = y < 0.42 ? "head" : x < 0.3 || x > 0.7 ? "cheek" : "tummy";
+    const feedback = zone === "head"
+      ? { index: 7, en: "PURR… I FEEL SAFE.", zh: "呼噜……这里很安心。" }
+      : zone === "cheek"
+        ? { index: 9, en: "TICKLY! AGAIN?", zh: "好痒！还要再来吗？" }
+        : { index: 0, en: "WARM SIGNAL RECEIVED.", zh: "收到一枚暖暖的信号。" };
+    setExpression(feedback.index);
+    setMessage(locale === "zh" ? feedback.zh : feedback.en);
+    setRipple((value) => value + 1);
+    const now = performance.now();
+    if (now - lastReward.current > 900) {
+      receiveTouch();
+      lastReward.current = now;
+    }
+  };
+  return (
+    <div className="touch-companion">
+      <button
+        className="touch-pet"
+        onPointerMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty("--touch-x", `${event.clientX - rect.left}px`);
+          event.currentTarget.style.setProperty("--touch-y", `${event.clientY - rect.top}px`);
+        }}
+        onPointerDown={touch}
+        aria-label="Touch Meowchi to see an emotional response"
+      >
+        <span key={ripple} className="fur-ripple" />
+        <span className="fur-light" />
+        <PetExpression index={visibleExpression} className="touch-expression" />
+        <span className="touch-crosshair">+</span>
+      </button>
+      <div className="touch-feedback"><i /> <span>{message}</span><small>{locale === "zh" ? "触摸会改变毛绒高光与表情" : "FUR LIGHT + EXPRESSION RESPOND TO TOUCH"}</small></div>
+    </div>
+  );
+}
+
 function CareHub({ locale }: { locale: Locale }) {
   const [gameOpen, setGameOpen] = useState(false);
   const [foodOpen, setFoodOpen] = useState(false);
+  const [comfortOpen, setComfortOpen] = useState(false);
   const [cleanOpen, setCleanOpen] = useState(false);
   const [sleepOpen, setSleepOpen] = useState(false);
   const [eventNotice, setEventNotice] = useState<"gift" | "meteor" | "visitor" | null>(null);
@@ -415,6 +498,7 @@ function CareHub({ locale }: { locale: Locale }) {
   const completeCare = (careAction: CareAction, quality: number) => {
     care(careAction, quality);
     setFoodOpen(false);
+    setComfortOpen(false);
     setCleanOpen(false);
     setSleepOpen(false);
     if (Math.random() < 0.34) {
@@ -430,11 +514,13 @@ function CareHub({ locale }: { locale: Locale }) {
   const careCopy = locale === "zh" ? {
     feed: ["喂食", "选择点心，填饱肚子"],
     play: ["玩耍", "进入接星星小游戏"],
+    comfort: ["安抚", "读懂情绪，陪它慢下来"],
     clean: ["清洁", "让毛发重新闪亮"],
     sleep: ["睡觉", "休息并恢复精力"],
   } : {
     feed: ["FEED", "Fill that tiny tummy"],
     play: ["PLAY", "Turn energy into joy"],
+    comfort: ["COMFORT", "Read the feeling, soften the signal"],
     clean: ["CLEAN", "Fresh fur, clear signal"],
     sleep: ["SLEEP", "Rest and recharge"],
   };
@@ -499,18 +585,10 @@ function CareHub({ locale }: { locale: Locale }) {
             <PetExpression index={7} className="orbit-expression orbit-c" />
             <PetExpression index={9} className="orbit-expression orbit-d" />
           </div>
-          <div className="pet-canvas">
-            <Canvas camera={{ position: [0, 0.15, 3.6], fov: 36 }} dpr={[1, 1.5]}>
-              <ambientLight intensity={1.25} color="#fff8e8" />
-              <spotLight position={[-3, 5, 4]} intensity={14} color="#e9ffd0" penumbra={1} />
-              <spotLight position={[4, 1, 3]} intensity={8} color="#d6c8ff" penumbra={1} />
-              <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><PetHomeModel action={action} /></Suspense></ModelErrorBoundary>
-              <Environment preset="studio" />
-            </Canvas>
-          </div>
+          <TouchPet locale={locale} action={action} />
           <div className="pet-message" data-visible={action !== "idle"}>
-            <PetExpression index={lastCare === "feed" ? 7 : lastCare === "play" ? 9 : lastCare === "clean" ? 0 : lastCare === "sleep" ? 3 : 2} className="feedback-expression" />
-            <span>{lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}</span>
+            <PetExpression index={lastCare === "feed" ? 7 : lastCare === "play" ? 9 : lastCare === "comfort" ? 0 : lastCare === "clean" ? 0 : lastCare === "sleep" ? 3 : 2} className="feedback-expression" />
+            <span>{lastCare === "feed" ? "YUM! +18 HUNGER" : lastCare === "play" ? "WHEE! +14 FUN" : lastCare === "comfort" ? "SAFE… +8 CALM" : lastCare === "clean" ? "SPARKLY! +22 CLEAN" : lastCare === "sleep" ? "ZZZ… +24 SLEEP" : "SIGNAL RECEIVED"}</span>
           </div>
           <div className="bond-card">
             <span>♥</span>
@@ -537,7 +615,7 @@ function CareHub({ locale }: { locale: Locale }) {
           <div className="panel actions-panel">
             <div className="panel-title"><span>↳</span> {locale === "zh" ? "养成操作" : "CARE ACTIONS"}</div>
             {careActions.map((item) => (
-              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : item.id === "feed" ? setFoodOpen(true) : item.id === "clean" ? setCleanOpen(true) : setSleepOpen(true)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
+              <button key={item.id} onClick={() => item.id === "play" ? setGameOpen(true) : item.id === "feed" ? setFoodOpen(true) : item.id === "comfort" ? setComfortOpen(true) : item.id === "clean" ? setCleanOpen(true) : setSleepOpen(true)} disabled={action !== "idle"} className={lastCare === item.id ? "active" : ""}>
                 <i>{item.icon}</i><span><b>{careCopy[item.id][0]}</b><small>{careCopy[item.id][1]}</small></span>
               </button>
             ))}
@@ -569,6 +647,7 @@ function CareHub({ locale }: { locale: Locale }) {
       </div>
       {gameOpen && <StarGame onClose={() => setGameOpen(false)} />}
       {foodOpen && <FeedChallenge onClose={() => setFoodOpen(false)} onComplete={(quality) => completeCare("feed", quality)} />}
+      {comfortOpen && <ComfortChallenge locale={locale} onClose={() => setComfortOpen(false)} onComplete={(quality) => completeCare("comfort", quality)} />}
       {cleanOpen && <CleanChallenge onClose={() => setCleanOpen(false)} onComplete={(quality) => completeCare("clean", quality)} />}
       {sleepOpen && <SleepChallenge onClose={() => setSleepOpen(false)} onComplete={(quality) => completeCare("sleep", quality)} />}
       {eventNotice && (
@@ -674,6 +753,95 @@ function ProductStory({ locale }: { locale: Locale }) {
   );
 }
 
+function ProjectRationale({ locale }: { locale: Locale }) {
+  const zh = locale === "zh";
+  const [activeTab, setActiveTab] = useState<"context" | "system" | "ai" | "series">("context");
+  const projectTabs = zh ? [
+    ["context", "项目缘起", "WHY NOW"],
+    ["system", "体验系统", "PRODUCT LOOP"],
+    ["ai", "AI 方法", "HUMAN / AI"],
+    ["series", "影像叙事", "SHORT VIDEO"],
+  ] as const : [
+    ["context", "CONTEXT", "WHY NOW"],
+    ["system", "EXPERIENCE", "PRODUCT LOOP"],
+    ["ai", "AI METHOD", "HUMAN / AI"],
+    ["series", "VIDEO STORY", "SHORT FORM"],
+  ] as const;
+  const opportunity = zh ? [
+    ["从惩罚转向陪伴", "经典电子宠物依赖饥饿、生病与死亡制造压力；新的数字陪伴更适合用回应、记忆和低压力回访建立关系。"],
+    ["从点击转向触感", "拖动设备、按下实体按钮、抚摸毛绒与跟随呼吸，让浏览器交互重新获得身体感。"],
+    ["从日活转向小仪式", "产品不要求长时间在线，只提供 30–90 秒的情绪签到、安抚与一段可保存的回忆。"],
+  ] : [
+    ["FROM PUNISHMENT TO CARE", "Classic virtual pets create pressure through hunger, illness and loss. A modern companion can build return through response, memory and low-pressure care."],
+    ["FROM CLICKS TO TOUCH", "Dragging the device, pressing physical buttons, brushing fur and following breath gives a browser interaction a body again."],
+    ["FROM DAU TO RITUAL", "The product asks for 30–90 seconds: check a feeling, offer comfort and keep one small memory—not endless engagement."],
+  ];
+  const episodes = zh ? [
+    ["01", "为什么数字宠物又回来了", "怀旧只是入口，真正回归的是对轻关系与低压力陪伴的需要。"],
+    ["02", "把电子宠物做成 WebGL 设备", "拆解设备、场景、2D 表情与状态系统，形成可替换的资产管线。"],
+    ["03", "设计可被触摸的情绪", "比较点击按钮与触摸毛绒反馈，迭代表情、光线、声音与触点。"],
+    ["04", "AI Coding 如何改变设计过程", "让 AI 加速结构与变体，把人的时间留给判断、审美与伦理。"],
+    ["05", "不把陪伴做成控制", "复盘数据边界、情绪误读、成瘾机制与非医疗声明。"],
+  ] : [
+    ["01", "WHY DIGITAL PETS RETURN", "Nostalgia opens the door; the deeper need is light connection without social pressure."],
+    ["02", "BUILDING A WEBGL COMPANION", "A replaceable pipeline joins device, room, 2D expression and persistent state."],
+    ["03", "DESIGNING TOUCHABLE EMOTION", "Touch points, fur light, expressions, sound and motion are tested as one response."],
+    ["04", "WHAT AI CODING CHANGES", "AI accelerates structure and variants so human time stays with judgment, taste and ethics."],
+    ["05", "CARE WITHOUT CONTROL", "The closing reflection covers data limits, misread emotion, dark patterns and non-clinical scope."],
+  ];
+  return (
+    <section className="rationale-section" id="why-tama-link">
+      <nav className="project-tabs" aria-label={zh ? "项目探索页签" : "Project exploration tabs"}>
+        <div><p className="eyebrow">TAMA LINK · CASE STUDY</p><span>{zh ? "从体验原型到产品论证" : "FROM EXPERIENCE PROTOTYPE TO PRODUCT ARGUMENT"}</span></div>
+        {projectTabs.map(([key, label, note], index) => <button key={key} className={activeTab === key ? "active" : ""} onClick={() => setActiveTab(key)}><i>0{index + 1}</i><b>{label}</b><small>{note}</small></button>)}
+      </nav>
+      <header className="rationale-hero" hidden={activeTab !== "context"}>
+        <p className="eyebrow">{zh ? "项目背景 · 为什么是现在" : "PROJECT CONTEXT · WHY NOW"}</p>
+        <h2>{zh ? <>怀旧不是答案。<br />被回应的需要，<span>一直都在。</span></> : <>Nostalgia is not the answer.<br />The need to be <span>answered</span> is.</>}</h2>
+        <p>{zh ? "TAMA LINK 不是把拓麻歌子的玩法搬进网页，也不是一款医疗产品。它探索的是：当硬件感、角色关系、短时减压和浏览器原生交互重新组合，数字宠物能否成为一个每天愿意打开几十秒的情绪接口。" : "TAMA LINK is neither a browser remake of Tamagotchi nor a medical product. It asks whether hardware tactility, character relationship, short decompression and browser-native interaction can become an emotional interface worth opening for a minute each day."}</p>
+      </header>
+      <div className="context-signal" hidden={activeTab !== "context"}>
+        <div className="context-year"><small>2018</small><strong>QQ PET</strong><span>{zh ? "停止运营" : "SERVICE ENDS"}</span></div>
+        <i />
+        <div className="context-year active"><small>2026</small><strong>{zh ? "数字宠物回归" : "DIGITAL PET RETURN"}</strong><span>{zh ? "3D · 触摸反馈 · AI 性格 · 日记" : "3D · TOUCH · AI PERSONA · DIARY"}</span></div>
+        <i />
+        <div className="context-year tama"><small>NEXT</small><strong>TAMA LINK</strong><span>{zh ? "可触摸的浏览器陪伴" : "A TOUCHABLE WEB COMPANION"}</span></div>
+      </div>
+      <div className="opportunity-grid" hidden={activeTab !== "context"}>
+        {opportunity.map(([title, copy], index) => <article key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{copy}</p></article>)}
+      </div>
+      <div className="value-loop" hidden={activeTab !== "system"}>
+        <div className="value-copy"><p className="eyebrow">{zh ? "核心价值 · 不是治愈承诺" : "CORE VALUE · NOT A CURE CLAIM"}</p><h3>{zh ? "把情绪照护缩小成一枚可以完成的信号。" : "Make emotional care small enough to complete."}</h3><p>{zh ? "研究提示，与动物或虚拟角色互动可能支持部分情绪体验与社会临场感，但证据仍复杂。产品因此只承诺轻量自我觉察、放松和关系反馈，不诊断，不替代专业帮助。" : "Research suggests that animal or virtual-companion interaction may support aspects of affect and social presence, while the evidence remains nuanced. The product promises only light self-awareness, decompression and relational feedback—never diagnosis or replacement for professional care."}</p></div>
+        <div className="loop-orbit">
+          <div><span>01</span><b>{zh ? "触摸" : "TOUCH"}</b><small>{zh ? "身体输入" : "embodied input"}</small></div>
+          <div><span>02</span><b>{zh ? "理解" : "READ"}</b><small>{zh ? "辨认感受" : "notice feeling"}</small></div>
+          <div><span>03</span><b>{zh ? "安抚" : "SOOTHE"}</b><small>{zh ? "呼吸同步" : "co-regulate"}</small></div>
+          <div><span>04</span><b>{zh ? "记住" : "REMEMBER"}</b><small>{zh ? "关系延续" : "relationship trace"}</small></div>
+          <PetExpression index={7} className="loop-expression" />
+        </div>
+      </div>
+      <div className="ai-boundary" hidden={activeTab !== "ai"}>
+        <header><p className="eyebrow">{zh ? "AI CODING · 工作方法与边界" : "AI CODING · METHOD AND BOUNDARY"}</p><h3>{zh ? "AI 扩大探索，人负责方向。" : "AI expands exploration. People own direction."}</h3></header>
+        <article><small>HUMAN</small><b>{zh ? "定义意义" : "DEFINE MEANING"}</b><p>{zh ? "设定情绪意图、产品伦理、品牌审美、交互取舍与最终验收。" : "Emotional intent, ethics, brand taste, interaction trade-offs and final acceptance."}</p></article>
+        <article><small>AI</small><b>{zh ? "加速成形" : "ACCELERATE FORM"}</b><p>{zh ? "生成工程骨架、状态逻辑、原型变体、资产接入与重复性检查。" : "Scaffolding, state logic, prototype variants, asset integration and repetitive checks."}</p></article>
+        <article className="shared"><small>SHARED</small><b>{zh ? "持续批评" : "ITERATE CRITICALLY"}</b><p>{zh ? "人提出可验证的判断，AI 快速实现，再用真实体验推翻或保留方案。" : "A person frames a testable judgment, AI implements quickly, and lived experience rejects or keeps it."}</p></article>
+        <footer>{zh ? "数据边界：当前体验默认本地存储，不推断心理状态，不上传情绪记录；未来若引入模型，必须取得明确授权并允许删除。" : "DATA BOUNDARY: state stays local by default. No psychological inference, no emotional-record upload. Any future model requires explicit consent and deletion controls."}</footer>
+      </div>
+      <div className="video-arc" hidden={activeTab !== "series"}>
+        <header><p className="eyebrow">{zh ? "短视频叙事 · 从问题到反思" : "SHORT-FORM SERIES · PROBLEM TO REFLECTION"}</p><h3>{zh ? "让制作过程本身成为作品。" : "Make the making part of the work."}</h3></header>
+        {episodes.map(([number, title, copy]) => <article key={number}><span>{number}</span><div><b>{title}</b><p>{copy}</p></div></article>)}
+      </div>
+      <div className="research-notes" hidden={activeTab !== "context"}>
+        <p className="eyebrow">{zh ? "研究依据 · 延伸阅读" : "RESEARCH NOTES · FURTHER READING"}</p>
+        <a href="https://app.dahecube.com/nweb/spider/20260727/828870ncdd43bef3c9.htm?artid=828870" target="_blank" rel="noreferrer"><span>01</span><b>{zh ? "QQ 宠物于 2026 年 7 月正式回归" : "QQ Pet officially returned in July 2026"}</b><small>Dahe Cube · Tencent QQ announcement</small></a>
+        <a href="https://www.iheima.com/article-400043.html" target="_blank" rel="noreferrer"><span>02</span><b>{zh ? "3D 触摸反馈、AI 性格、宠物日记与跨界面陪伴" : "3D touch, AI persona, pet diary and cross-interface companionship"}</b><small>iHeima · product feature report</small></a>
+        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8388427/" target="_blank" rel="noreferrer"><span>03</span><b>{zh ? "伴侣动物与压力情境下的情绪缓冲研究" : "Companion animals and affect under stress"}</b><small>Peer-reviewed experience sampling study</small></a>
+        <a href="https://www.sciencedirect.com/science/article/pii/S1875952125000382" target="_blank" rel="noreferrer"><span>04</span><b>{zh ? "虚拟宠物在娱乐之外的健康与学习应用综述" : "Review of virtual pets beyond entertainment"}</b><small>Entertainment Computing · 2025 review</small></a>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [locale, setLocale] = useState<Locale>(() => {
     if (typeof window === "undefined") return "en";
@@ -763,6 +931,7 @@ export default function Home() {
       <CareHub locale={locale} />
       <PetRoom locale={locale} />
       <ProductStory locale={locale} />
+      <ProjectRationale locale={locale} />
       <section className="home-section">
         <div>
           <p className="eyebrow">PHASE 02 · SYSTEM READY</p>
