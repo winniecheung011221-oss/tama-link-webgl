@@ -33,20 +33,20 @@ const UI = {
     storyTitleC: "alive.",
   },
   zh: {
-    heroKicker: "浏览器里的数字陪伴",
-    heroTitleA: "信号。",
-    heroTitleB: "正在苏醒。",
-    heroCopy: "滚动靠近，转动设备，认识屏幕里等待你的伙伴。",
-    scroll: "滚动以建立连接",
-    signals: "选择一个互动信号",
-    petKicker: "宠物主页 · 实时养成",
-    meet: "你好，",
-    roomKicker: "宠物小家 · 实时 3D 场景",
-    roomTitle: "Meowchi 的小小世界。",
-    storyKicker: "产品 01 · 为陪伴而设计",
-    storyTitleA: "透明，",
-    storyTitleB: "可触，",
-    storyTitleC: "有生命。",
+    heroKicker: "一只住在浏览器里的电子宠物",
+    heroTitleA: "信号抵达。",
+    heroTitleB: "陪伴苏醒。",
+    heroCopy: "滚动靠近，转动设备。屏幕另一端，有个小家伙正在等你回应。",
+    scroll: "向下滚动，建立连接",
+    signals: "选择一种回应方式",
+    petKicker: "MEOWCHI 的家 · 今日陪伴",
+    meet: "今天也来看看",
+    roomKicker: "可探索房间 · 点击场景移动",
+    roomTitle: "Meowchi 的房间，会回应你的选择。",
+    storyKicker: "产品设计 · 把陪伴做成可触摸的物件",
+    storyTitleA: "结构可见，",
+    storyTitleB: "触摸有回应，",
+    storyTitleC: "关系会生长。",
   },
 } as const;
 
@@ -198,7 +198,7 @@ function PetExpression({ index, className = "" }: { index: number; className?: s
   );
 }
 
-function StarGame({ onClose }: { onClose: () => void }) {
+function StarGame({ locale, onClose }: { locale: Locale; onClose: () => void }) {
   const [time, setTime] = useState(15);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(1);
@@ -235,24 +235,24 @@ function StarGame({ onClose }: { onClose: () => void }) {
   return (
     <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Catch the signal mini game">
       <div className="game-window">
-        <header><div><p className="eyebrow">PLAY MODE · SIGNAL CATCH</p><h3>{time > 0 ? "Catch the stars." : "Signal complete!"}</h3></div><button onClick={onClose} aria-label="Close game">×</button></header>
-        <div className="game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>SCORE <b>{String(score).padStart(2, "0")}</b></span><span>COMBO <b>×{combo}</b></span><span>REWARD <b>+{score * 12}</b></span></div>
+        <header><div><p className="eyebrow">{locale === "zh" ? "玩耍模式 · 接住星光" : "PLAY MODE · SIGNAL CATCH"}</p><h3>{time > 0 ? (locale === "zh" ? "接住跳动的星星。" : "Catch the stars.") : (locale === "zh" ? "这次信号收集完成。" : "Signal complete!")}</h3></div><button onClick={onClose} aria-label="Close game">×</button></header>
+        <div className="game-hud"><span>{locale === "zh" ? "时间" : "TIME"} <b>{String(time).padStart(2, "0")}</b></span><span>{locale === "zh" ? "得分" : "SCORE"} <b>{String(score).padStart(2, "0")}</b></span><span>{locale === "zh" ? "连击" : "COMBO"} <b>×{combo}</b></span><span>{locale === "zh" ? "奖励" : "REWARD"} <b>+{score * 12}</b></span></div>
         <div className="playfield">
           <div className="scanline" />
           {time > 0 ? (
             <button key={star.id} className="catch-star" style={{ left: `${star.x}%`, top: `${star.y}%` }} onClick={catchStar} aria-label="Catch star">★</button>
           ) : (
-            <div className="game-result"><PetExpression index={score >= 8 ? 1 : 0} className="result-expression" /><strong>{score}</strong><span>STARS CAUGHT</span><small>+{score * 12} stardust · fun +{score * 2}</small><button onClick={onClose}>RETURN TO MEOWCHI</button></div>
+            <div className="game-result"><PetExpression index={score >= 8 ? 1 : 0} className="result-expression" /><strong>{score}</strong><span>{locale === "zh" ? "颗星星被接住" : "STARS CAUGHT"}</span><small>+{score * 12} {locale === "zh" ? "星尘 · 快乐" : "stardust · fun"} +{score * 2}</small><button onClick={onClose}>{locale === "zh" ? "回到 MEOWCHI 身边" : "RETURN TO MEOWCHI"}</button></div>
           )}
           <Image src="/reference/phase-three/expression-playful-cutout.png" alt="" width={1024} height={1024} />
         </div>
-        <footer>CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND</footer>
+        <footer>{locale === "zh" ? "在星星跳走前点中它 · 每局 15 秒" : "CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND"}</footer>
       </div>
     </div>
   );
 }
 
-function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
+function FeedChallenge({ locale, onComplete, onClose }: { locale: Locale; onComplete: (quality: number) => void; onClose: () => void }) {
   const foods = [
     { name: "STRAWBERRY", note: "Bright + playful", artwork: "/reference/phase-three/food-strawberry-slice.png" },
     { name: "PUDDING", note: "Soft + comforting", artwork: "/reference/phase-three/food-pudding.png" },
@@ -271,13 +271,13 @@ function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) 
   return (
     <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Feed timing challenge">
       <div className="food-window">
-        <header><div><p className="eyebrow">FEED MODE · SWEET SPOT</p><h3>{selected ? "Serve it just right." : "Choose a treat."}</h3></div><button onClick={onClose} aria-label="Close food picker">×</button></header>
+        <header><div><p className="eyebrow">{locale === "zh" ? "喂食模式 · 刚刚好的甜度" : "FEED MODE · SWEET SPOT"}</p><h3>{selected ? (locale === "zh" ? "抓住最合适的投喂时机。" : "Serve it just right.") : (locale === "zh" ? "今天想请它吃什么？" : "Choose a treat.")}</h3></div><button onClick={onClose} aria-label="Close food picker">×</button></header>
         {!selected ? (
           <div className="food-grid">
             {foods.map((food) => (
               <button key={food.name} onClick={() => setSelected(food)}>
                 <div className="food-model food-artwork"><Image src={food.artwork} alt={food.name} fill sizes="(max-width: 800px) 90vw, 390px" /></div>
-                <b>{food.name}</b><small>{food.note}</small><span>SELECT TREAT →</span>
+                <b>{locale === "zh" ? (food.name === "STRAWBERRY" ? "草莓" : "布丁") : food.name}</b><small>{locale === "zh" ? (food.name === "STRAWBERRY" ? "清甜、活泼" : "柔软、安心") : food.note}</small><span>{locale === "zh" ? "选择这份点心 →" : "SELECT TREAT →"}</span>
               </button>
             ))}
           </div>
@@ -285,9 +285,9 @@ function FeedChallenge({ onComplete, onClose }: { onComplete: (quality: number) 
           <div className="timing-challenge">
             <div className="selected-food"><div className="food-model food-artwork selected"><Image src={selected.artwork} alt={selected.name} fill sizes="(max-width: 800px) 90vw, 390px" /></div><b>{selected.name}</b></div>
             <div className="timing-panel">
-              <p>STOP THE SIGNAL INSIDE THE LIME ZONE</p>
+              <p>{locale === "zh" ? "让游标停在绿色甜蜜区" : "STOP THE SIGNAL INSIDE THE LIME ZONE"}</p>
               <div className={`timing-meter ${quality !== null ? "stopped" : ""}`}><i /><span /></div>
-              {quality === null ? <button onClick={stopMeter}>LOCK SERVE TIMING</button> : <div className="challenge-result"><strong>{quality > 1.28 ? "PERFECT SERVE!" : quality > .9 ? "NICE TIMING" : "MESSY, BUT TASTY"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>GIVE TO MEOWCHI</button></div>}
+              {quality === null ? <button onClick={stopMeter}>{locale === "zh" ? "就是现在" : "LOCK SERVE TIMING"}</button> : <div className="challenge-result"><strong>{locale === "zh" ? (quality > 1.28 ? "刚刚好！" : quality > .9 ? "时机不错" : "有点手忙脚乱，但很好吃") : (quality > 1.28 ? "PERFECT SERVE!" : quality > .9 ? "NICE TIMING" : "MESSY, BUT TASTY")}</strong><small>{locale === "zh" ? "奖励倍率" : "REWARD"} ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>{locale === "zh" ? "递给 MEOWCHI" : "GIVE TO MEOWCHI"}</button></div>}
             </div>
           </div>
         )}
@@ -301,7 +301,7 @@ const cleanSpots = [
   { left: 30, top: 63 }, { left: 66, top: 68 }, { left: 50, top: 82 },
 ];
 
-function CleanChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
+function CleanChallenge({ locale, onComplete, onClose }: { locale: Locale; onComplete: (quality: number) => void; onClose: () => void }) {
   const [remaining, setRemaining] = useState(cleanSpots.map((_, index) => index));
   const [time, setTime] = useState(12);
   const [quality, setQuality] = useState<number | null>(null);
@@ -327,19 +327,20 @@ function CleanChallenge({ onComplete, onClose }: { onComplete: (quality: number)
   return (
     <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Clean pet challenge">
       <div className="care-game-window">
-        <header><div><p className="eyebrow">CLEAN MODE · SIGNAL POLISH</p><h3>Tap every glitch spot.</h3></div><button onClick={onClose} aria-label="Close clean game">×</button></header>
-        <div className="care-game-hud"><span>TIME <b>{String(time).padStart(2, "0")}</b></span><span>CLEARED <b>{cleanSpots.length - remaining.length}/{cleanSpots.length}</b></span></div>
+        <header><div><p className="eyebrow">{locale === "zh" ? "清洁模式 · 泡泡护理" : "CLEAN MODE · BUBBLE GROOM"}</p><h3>{locale === "zh" ? "点掉毛球，再用泡泡洗干净。" : "Clear the fluff knots with bubbles."}</h3></div><button onClick={onClose} aria-label="Close clean game">×</button></header>
+        <div className="care-game-hud"><span>{locale === "zh" ? "剩余时间" : "TIME"} <b>{String(time).padStart(2, "0")}</b></span><span>{locale === "zh" ? "已清理" : "CLEARED"} <b>{cleanSpots.length - remaining.length}/{cleanSpots.length}</b></span></div>
         <div className="clean-field">
+          <div className="soap-bubbles" aria-hidden="true">{[0,1,2,3,4,5,6].map((bubble) => <i key={bubble} />)}</div>
           <Image src="/reference/phase-three/expression-happy-cutout.png" alt="Meowchi" width={1024} height={1024} />
-          {remaining.map((index) => <button key={index} style={{ left: `${cleanSpots[index].left}%`, top: `${cleanSpots[index].top}%` }} onClick={() => clearSpot(index)} aria-label="Clean glitch spot"><i /></button>)}
-          {quality !== null && <div className="challenge-result floating"><strong>{remaining.length === 0 ? "SIGNAL SPARKLING!" : "PARTIAL CLEAN"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>COMPLETE CLEAN</button></div>}
+          {remaining.map((index) => <button key={index} className="fluff-knot" style={{ left: `${cleanSpots[index].left}%`, top: `${cleanSpots[index].top}%` }} onClick={() => clearSpot(index)} aria-label="Clean fluff knot"><i /></button>)}
+          {quality !== null && <div className="challenge-result floating"><strong>{locale === "zh" ? (remaining.length === 0 ? "毛毛蓬松得会发光！" : "还有几处毛球，下次继续") : (remaining.length === 0 ? "FUR FLUFFY AND BRIGHT!" : "PARTIAL GROOM")}</strong><small>{locale === "zh" ? "奖励倍率" : "REWARD"} ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>{locale === "zh" ? "完成清洁" : "COMPLETE CLEAN"}</button></div>}
         </div>
       </div>
     </div>
   );
 }
 
-function SleepChallenge({ onComplete, onClose }: { onComplete: (quality: number) => void; onClose: () => void }) {
+function SleepChallenge({ locale, onComplete, onClose }: { locale: Locale; onComplete: (quality: number) => void; onClose: () => void }) {
   const [hits, setHits] = useState<number[]>([]);
   const [quality, setQuality] = useState<number | null>(null);
   const started = useRef(0);
@@ -358,12 +359,12 @@ function SleepChallenge({ onComplete, onClose }: { onComplete: (quality: number)
   return (
     <div className="game-overlay" role="dialog" aria-modal="true" aria-label="Sleep rhythm challenge">
       <div className="care-game-window sleep-window">
-        <header><div><p className="eyebrow">SLEEP MODE · DREAM SYNC</p><h3>Tap with the breathing light.</h3></div><button onClick={onClose} aria-label="Close sleep game">×</button></header>
+        <header><div><p className="eyebrow">{locale === "zh" ? "睡眠模式 · 呼吸同步" : "SLEEP MODE · DREAM SYNC"}</p><h3>{locale === "zh" ? "跟着呼吸光，慢慢安静下来。" : "Tap with the breathing light."}</h3></div><button onClick={onClose} aria-label="Close sleep game">×</button></header>
         <div className="sleep-field">
           <button className="breath-orb" onClick={tapBeat} disabled={quality !== null}><i /><span>TAP</span></button>
           <div className="beat-notes">{[0, 1, 2, 3, 4].map((index) => <i key={index} className={hits[index] === undefined ? "" : hits[index] > .7 ? "perfect" : "hit"} />)}</div>
-          <p>Follow five slow pulses. Tap when the rings meet.</p>
-          {quality !== null && <div className="challenge-result"><strong>{quality > 1.28 ? "DREAM SYNC PERFECT" : quality > .9 ? "PEACEFUL RHYTHM" : "RESTLESS, STILL COZY"}</strong><small>REWARD ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>TUCK MEOWCHI IN</button></div>}
+          <p>{locale === "zh" ? "跟随五次缓慢脉冲，在光环重合时轻点。" : "Follow five slow pulses. Tap when the rings meet."}</p>
+          {quality !== null && <div className="challenge-result"><strong>{locale === "zh" ? (quality > 1.28 ? "呼吸完全同步" : quality > .9 ? "节奏很平静" : "没关系，慢下来就好") : (quality > 1.28 ? "DREAM SYNC PERFECT" : quality > .9 ? "PEACEFUL RHYTHM" : "RESTLESS, STILL COZY")}</strong><small>{locale === "zh" ? "奖励倍率" : "REWARD"} ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>{locale === "zh" ? "陪 MEOWCHI 入睡" : "TUCK MEOWCHI IN"}</button></div>}
         </div>
       </div>
     </div>
@@ -476,6 +477,8 @@ function CareHub({ locale }: { locale: Locale }) {
   const [cleanOpen, setCleanOpen] = useState(false);
   const [sleepOpen, setSleepOpen] = useState(false);
   const [eventNotice, setEventNotice] = useState<"gift" | "meteor" | "visitor" | null>(null);
+  const [charmNotice, setCharmNotice] = useState("");
+  const [memoryOpen, setMemoryOpen] = useState<number | null>(null);
   const stats = useTamaStore((s) => s.stats);
   const bond = useTamaStore((s) => s.bond);
   const stardust = useTamaStore((s) => s.stardust);
@@ -509,14 +512,22 @@ function CareHub({ locale }: { locale: Locale }) {
       window.setTimeout(() => setEventNotice(null), 4200);
     }
   };
+  const chooseCharm = (charm: "lucky-star" | "glow-cube" | "rainy-day") => {
+    const locked = charm === "rainy-day" && gameBest < 8;
+    if (!locked) equipCharm(charm);
+    setCharmNotice(locked
+      ? (locale === "zh" ? `再接住 ${8 - gameBest} 颗星即可解锁「雨天」` : `CATCH ${8 - gameBest} MORE STARS TO UNLOCK`)
+      : (locale === "zh" ? `已佩戴：${charm === "lucky-star" ? "幸运星" : charm === "glow-cube" ? "发光方块" : "雨天云朵"}` : `${charm.replaceAll("-", " ").toUpperCase()} EQUIPPED`));
+    window.setTimeout(() => setCharmNotice(""), 2400);
+  };
   const mood = bond > 82 ? "radiant" : bond > 64 ? "content" : "curious";
   const bondLevel = Math.min(5, Math.max(1, Math.ceil(bond / 20)));
   const careCopy = locale === "zh" ? {
-    feed: ["喂食", "选择点心，填饱肚子"],
-    play: ["玩耍", "进入接星星小游戏"],
-    comfort: ["安抚", "读懂情绪，陪它慢下来"],
-    clean: ["清洁", "让毛发重新闪亮"],
-    sleep: ["睡觉", "休息并恢复精力"],
+    feed: ["投喂", "选一份点心，抓住最佳投喂时机"],
+    play: ["接星星", "追逐跳动信号，连击赢得星尘"],
+    comfort: ["听懂它", "辨认情绪，陪它完成四次慢呼吸"],
+    clean: ["泡泡护理", "点掉毛球，把毛毛洗得蓬松发亮"],
+    sleep: ["陪它入睡", "跟随呼吸光，完成一段安静节奏"],
   } : {
     feed: ["FEED", "Fill that tiny tummy"],
     play: ["PLAY", "Turn energy into joy"],
@@ -573,7 +584,7 @@ function CareHub({ locale }: { locale: Locale }) {
             <div className="panel-title"><span>◉</span> {locale === "zh" ? "心情" : "MOOD"}</div>
             <p>{locale === "zh" ? (mood === "radiant" ? "闪闪发光" : mood === "content" ? "满足" : "好奇") : mood}</p>
             <PetExpression index={mood === "radiant" ? 7 : mood === "content" ? 0 : 2} className="mood-expression" />
-            <small>Bond responds to every care action.</small>
+            <small>{locale === "zh" ? "每一次回应，都会改变你们的亲密度。" : "Bond responds to every care action."}</small>
           </div>
         </aside>
 
@@ -599,18 +610,19 @@ function CareHub({ locale }: { locale: Locale }) {
 
         <aside className="hub-column right">
           <div className="panel charms-panel">
-            <div className="panel-title"><span>⌁</span> {locale === "zh" ? "挂件" : "CHARMS"} <small>2 / 2</small></div>
+            <div className="panel-title"><span>⌁</span> {locale === "zh" ? "随身挂件" : "CHARMS"} <small>{2 + (gameBest >= 8 ? 1 : 0)} / 3</small></div>
             <div className="charm-grid">
-              <button className={equippedCharm === "lucky-star" ? "selected" : ""} onClick={() => equipCharm("lucky-star")}>
-                <b>★</b><span>Lucky Star</span><small>{equippedCharm === "lucky-star" ? "EQUIPPED" : "EQUIP"}</small>
+              <button className={equippedCharm === "lucky-star" ? "selected" : ""} onClick={() => chooseCharm("lucky-star")}>
+                <b>★</b><span>{locale === "zh" ? "幸运星" : "Lucky Star"}</span><small>{equippedCharm === "lucky-star" ? (locale === "zh" ? "佩戴中" : "EQUIPPED") : (locale === "zh" ? "点击佩戴" : "EQUIP")}</small>
               </button>
-              <button className={equippedCharm === "glow-cube" ? "selected" : ""} onClick={() => equipCharm("glow-cube")}>
-                <b>♥</b><span>Glow Cube</span><small>{equippedCharm === "glow-cube" ? "EQUIPPED" : "EQUIP"}</small>
+              <button className={equippedCharm === "glow-cube" ? "selected" : ""} onClick={() => chooseCharm("glow-cube")}>
+                <b>♥</b><span>{locale === "zh" ? "发光方块" : "Glow Cube"}</span><small>{equippedCharm === "glow-cube" ? (locale === "zh" ? "佩戴中" : "EQUIPPED") : (locale === "zh" ? "点击佩戴" : "EQUIP")}</small>
               </button>
-              <button className={`${equippedCharm === "rainy-day" ? "selected" : ""} ${gameBest < 8 ? "locked" : ""}`} onClick={() => equipCharm("rainy-day")}>
-                <b>☂</b><span>Rainy Day</span><small>{gameBest < 8 ? `${gameBest}/8 STARS` : equippedCharm === "rainy-day" ? "EQUIPPED" : "UNLOCKED"}</small>
+              <button className={`${equippedCharm === "rainy-day" ? "selected" : ""} ${gameBest < 8 ? "locked" : ""}`} onClick={() => chooseCharm("rainy-day")}>
+                <b>☂</b><span>{locale === "zh" ? "雨天云朵" : "Rainy Day"}</span><small>{gameBest < 8 ? `${gameBest}/8 ${locale === "zh" ? "颗星" : "STARS"}` : equippedCharm === "rainy-day" ? (locale === "zh" ? "佩戴中" : "EQUIPPED") : (locale === "zh" ? "已解锁" : "UNLOCKED")}</small>
               </button>
             </div>
+            <div className="charm-notice" data-visible={Boolean(charmNotice)} aria-live="polite"><i />{charmNotice || (locale === "zh" ? "点击挂件即可更换" : "CLICK A CHARM TO EQUIP")}</div>
           </div>
           <div className="panel actions-panel">
             <div className="panel-title"><span>↳</span> {locale === "zh" ? "养成操作" : "CARE ACTIONS"}</div>
@@ -628,7 +640,7 @@ function CareHub({ locale }: { locale: Locale }) {
         <div className={gameBest >= 5 ? "done" : ""}><span>02</span><b>CATCH ×5</b><small>{Math.min(gameBest, 5)} / 5</small></div>
         <button disabled={dailyClaimed || careCount < 3 || gameBest < 5} onClick={claimDaily}>{dailyClaimed ? "CLAIMED ✓" : "CLAIM +250"}</button>
       </div>
-      <div className="memory-strip">
+      <div className="memory-strip" id="memories">
         <header>
           <p className="eyebrow">{locale === "zh" ? "回忆档案 · 奖励收藏" : "MEMORY ARCHIVE · REWARD COLLECTION"}</p>
           <h3>{locale === "zh" ? "把陪伴变成可收藏的故事。" : "Turn care into collectible stories."}</h3>
@@ -636,20 +648,26 @@ function CareHub({ locale }: { locale: Locale }) {
         </header>
         {[1, 3, 5].map((threshold, index) => {
           const unlocked = memories >= threshold;
+          const memoryImages = ["/reference/phase-three/expression-curious-cutout.png", "/reference/phase-three/food-pudding.png", "/reference/phase-three/expression-loving-cutout.png"];
+          const memoryCopies = locale === "zh"
+            ? ["第一次触摸屏幕时，它把你的回应记成了一颗小小的光。", "那天很晚，你们分完一份布丁，房间里只剩柔软的呼吸声。", "当亲密度足够高，房间会长出一座只属于你们的秘密花园。"]
+            : ["Your first touch became a tiny light it chose to keep.", "It was late when you shared pudding and listened to the room breathe.", "With enough bond, the room grows a secret garden for the two of you."];
           return (
-            <article className={`memory-card ${unlocked ? "unlocked" : "locked"}`} key={threshold}>
-              <div className="memory-art">{unlocked ? `MEMORY SIGNAL 0${index + 1}` : "ILLUSTRATION SLOT"}</div>
+            <button className={`memory-card ${unlocked ? "unlocked" : "locked"}`} key={threshold} onClick={() => unlocked && setMemoryOpen(index)}>
+              <div className="memory-art"><img src={memoryImages[index]} alt="" /><span>{unlocked ? `MEMORY 0${index + 1}` : `${memories} / ${threshold}`}</span></div>
               <b>{locale === "zh" ? ["初次连接", "深夜零食", "秘密花园"][index] : ["FIRST LINK", "MIDNIGHT SNACK", "SECRET GARDEN"][index]}</b>
-              <small>{unlocked ? (locale === "zh" ? "已捕获" : "CAPTURED") : `${memories} / ${threshold} BURSTS`}</small>
-            </article>
+              <small>{unlocked ? (locale === "zh" ? "点击翻开这段回忆" : "OPEN THIS MEMORY") : (locale === "zh" ? `还需 ${threshold - memories} 次信号爆发` : `${threshold - memories} MORE SIGNAL BURSTS`)}</small>
+              <p>{memoryCopies[index]}</p>
+            </button>
           );
         })}
       </div>
-      {gameOpen && <StarGame onClose={() => setGameOpen(false)} />}
-      {foodOpen && <FeedChallenge onClose={() => setFoodOpen(false)} onComplete={(quality) => completeCare("feed", quality)} />}
+      {memoryOpen !== null && <div className="game-overlay" role="dialog" aria-modal="true"><div className="memory-modal"><button onClick={() => setMemoryOpen(null)} aria-label="Close memory">×</button><img src={["/reference/phase-three/expression-curious-cutout.png", "/reference/phase-three/food-pudding.png", "/reference/phase-three/expression-loving-cutout.png"][memoryOpen]} alt="" /><p className="eyebrow">MEMORY 0{memoryOpen + 1}</p><h3>{locale === "zh" ? ["第一次有人回应", "一份深夜布丁", "会生长的房间"][memoryOpen] : ["THE FIRST ANSWER", "MIDNIGHT PUDDING", "A ROOM THAT GROWS"][memoryOpen]}</h3></div></div>}
+      {gameOpen && <StarGame locale={locale} onClose={() => setGameOpen(false)} />}
+      {foodOpen && <FeedChallenge locale={locale} onClose={() => setFoodOpen(false)} onComplete={(quality) => completeCare("feed", quality)} />}
       {comfortOpen && <ComfortChallenge locale={locale} onClose={() => setComfortOpen(false)} onComplete={(quality) => completeCare("comfort", quality)} />}
-      {cleanOpen && <CleanChallenge onClose={() => setCleanOpen(false)} onComplete={(quality) => completeCare("clean", quality)} />}
-      {sleepOpen && <SleepChallenge onClose={() => setSleepOpen(false)} onComplete={(quality) => completeCare("sleep", quality)} />}
+      {cleanOpen && <CleanChallenge locale={locale} onClose={() => setCleanOpen(false)} onComplete={(quality) => completeCare("clean", quality)} />}
+      {sleepOpen && <SleepChallenge locale={locale} onClose={() => setSleepOpen(false)} onComplete={(quality) => completeCare("sleep", quality)} />}
       {eventNotice && (
         <div className={`random-event ${eventNotice}`}>
           <PetExpression index={eventNotice === "gift" ? 8 : eventNotice === "meteor" ? 1 : 2} className="event-expression" />
@@ -692,14 +710,26 @@ type RoomMode = "black" | "white";
 function RoomEnvironmentModel({ mode }: { mode: RoomMode }) {
   const { scene } = useGLTF(mode === "black" ? ASSETS.scenes.petHomeBlack : ASSETS.scenes.petHomeWhite);
   const model = useMemo(() => scene.clone(true), [scene]);
-  return <group scale={4.4} position={[-0.1, -0.25, -0.85]} rotation={[0, Math.PI / 4, 0]}><Center><primitive object={model} /></Center></group>;
+  return <group scale={5.65} position={[-0.05, -0.42, -0.72]} rotation={[0, Math.PI / 4, 0]}><Center><primitive object={model} /></Center></group>;
 }
 
 function PetRoom({ locale }: { locale: Locale }) {
   const [mode, setMode] = useState<RoomMode>("black");
+  const [petPosition, setPetPosition] = useState({ x: 50, y: 76 });
+  const [walking, setWalking] = useState(false);
+  const walkTimer = useRef<number | null>(null);
   const lighting = mode === "black"
     ? { key: "#a887ff", fill: "#b8ff5f", label: "BLACK ROOM", bonus: "+ CURIOUS" }
     : { key: "#fff1cf", fill: "#b8d9ff", label: "WHITE ROOM", bonus: "+ HAPPY" };
+  const walkPet = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(14, Math.min(86, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(42, Math.min(82, ((event.clientY - rect.top) / rect.height) * 100));
+    setPetPosition({ x, y });
+    setWalking(true);
+    if (walkTimer.current) window.clearTimeout(walkTimer.current);
+    walkTimer.current = window.setTimeout(() => setWalking(false), 900);
+  };
   return (
     <section className={`pet-room theme-${mode}`} id="room">
       <div className="room-head">
@@ -707,13 +737,13 @@ function PetRoom({ locale }: { locale: Locale }) {
         <div className="theme-switcher">
           {(["black", "white"] as const).map((item) => (
             <button key={item} className={mode === item ? "active" : ""} onClick={() => setMode(item)}>
-              {item === "black" ? (locale === "zh" ? "黑色空间" : "BLACK MODE") : (locale === "zh" ? "白色空间" : "WHITE MODE")}
+              {item === "black" ? (locale === "zh" ? "夜间房间" : "BLACK MODE") : (locale === "zh" ? "日光房间" : "WHITE MODE")}
             </button>
           ))}
         </div>
       </div>
-      <div className="room-stage">
-        <Canvas camera={{ position: [0, 0.45, 6], fov: 42 }} dpr={[1, 1.5]}>
+      <div className="room-stage" onPointerDown={walkPet} aria-label={locale === "zh" ? "点击房间任意位置，让 Meowchi 走过去" : "Click anywhere in the room to move Meowchi"}>
+        <Canvas camera={{ position: [0, 0.35, 5.3], fov: 42 }} dpr={[1, 1.5]}>
           <color attach="background" args={[mode === "black" ? "#020403" : "#e9ede6"]} />
           <ambientLight intensity={mode === "black" ? 0.72 : 1.32} color={mode === "black" ? "#d9d4ff" : "#fff8e8"} />
           <spotLight position={[-4, 6, 4]} intensity={22} color={lighting.key} angle={0.5} penumbra={1} />
@@ -722,10 +752,14 @@ function PetRoom({ locale }: { locale: Locale }) {
           <ModelErrorBoundary fallback={<></>}><Suspense fallback={null}><RoomEnvironmentModel key={mode} mode={mode} /></Suspense></ModelErrorBoundary>
           <Environment preset={mode === "black" ? "night" : "apartment"} environmentIntensity={mode === "black" ? 0.28 : 0.48} />
         </Canvas>
-        <Image className="room-pet-sprite" src="/reference/phase-three/expression-happy-cutout.png" alt="Meowchi in the selected room" width={1024} height={1024} />
-        <div className="room-badge"><i /> {lighting.label}<small>MODEL SPACE ACTIVE</small></div>
-        <div className="room-effect">{lighting.bonus}<small>{mode === "black" ? "NIGHT CURIOSITY BOOST" : "COZY MOOD BOOST"}</small></div>
-        <div className="room-controls"><span>45° ROOM VIEW</span><span>SPACE AFFECTS MOOD</span></div>
+        <div className={`room-pet-agent ${walking ? "walking" : ""}`} style={{ left: `${petPosition.x}%`, top: `${petPosition.y}%` }}>
+          <img src={walking ? "/reference/phase-three/expression-excited-cutout.png" : "/reference/phase-three/expression-happy-cutout.png"} alt="Meowchi in the selected room" />
+          <i />
+        </div>
+        <div className="room-badge"><i /> {lighting.label}<small>{locale === "zh" ? "45° 场景视角" : "45° MODEL SPACE"}</small></div>
+        <div className="room-effect">{lighting.bonus}<small>{locale === "zh" ? (mode === "black" ? "夜晚让好奇心慢慢生长" : "日光让心情更加轻盈") : (mode === "black" ? "NIGHT CURIOSITY BOOST" : "COZY MOOD BOOST")}</small></div>
+        <div className="room-walk-hint"><span>⌖</span><b>{locale === "zh" ? "点击房间，让 Meowchi 走过去" : "CLICK THE ROOM TO MOVE MEOWCHI"}</b></div>
+        <div className="room-controls"><span>{locale === "zh" ? "场景已放大 · 可探索" : "ENLARGED ROOM · EXPLORE"}</span><span>{locale === "zh" ? "不同空间会影响心情" : "SPACE AFFECTS MOOD"}</span></div>
       </div>
     </section>
   );
@@ -733,11 +767,11 @@ function PetRoom({ locale }: { locale: Locale }) {
 
 function ProductStory({ locale }: { locale: Locale }) {
   return (
-    <section className="product-story">
+    <section className="product-story" id="object-study">
       <div className="story-copy">
         <p className="eyebrow">{UI[locale].storyKicker}</p>
         <h2>{UI[locale].storyTitleA}<br />{UI[locale].storyTitleB} <span>{UI[locale].storyTitleC}</span></h2>
-        <p>{locale === "zh" ? "透明外壳展示内部结构，三枚颜色不同的按钮把陪伴变成可以触摸的仪式，每次按压都会得到不同的情绪回应。" : "The shell reveals the technology inside while three color-coded buttons turn care into a physical ritual. Every press has a different emotional response."}</p>
+        <p>{locale === "zh" ? "透明外壳让内部结构成为视觉的一部分；三枚有明确触感和颜色分工的按钮，则把照顾、玩耍和情绪回应变成一种不用学习就能完成的日常仪式。" : "The shell reveals the technology inside while three color-coded buttons turn care into a physical ritual. Every press has a different emotional response."}</p>
         <div className="material-list">
           <span><i className="swatch shell" /> TRANSPARENT PC</span>
           <span><i className="swatch lime" /> LIME SIGNAL</span>
@@ -746,8 +780,8 @@ function ProductStory({ locale }: { locale: Locale }) {
         </div>
       </div>
       <div className="device-gallery">
-        <Image src="/reference/phase-two/device-back-reference.webp" alt="TAMA LINK transparent device back view" width={1024} height={1365} />
-        <div className="gallery-label"><span>360° OBJECT STUDY</span><small>MODEL IN PRODUCTION</small></div>
+        <img src="/reference/phase-two/device-back-reference.png" alt={locale === "zh" ? "TAMA LINK 透明设备背面结构" : "TAMA LINK transparent device back view"} />
+        <div className="gallery-label"><span>{locale === "zh" ? "设备背面 · 结构研究" : "360° OBJECT STUDY"}</span><small>{locale === "zh" ? "透明外壳 / 内部结构 / 可替换电池舱" : "TRANSPARENT SHELL · INTERNAL LAYERS"}</small></div>
       </div>
     </section>
   );
@@ -768,9 +802,9 @@ function ProjectRationale({ locale }: { locale: Locale }) {
     ["series", "VIDEO STORY", "SHORT FORM"],
   ] as const;
   const opportunity = zh ? [
-    ["从惩罚转向陪伴", "经典电子宠物依赖饥饿、生病与死亡制造压力；新的数字陪伴更适合用回应、记忆和低压力回访建立关系。"],
-    ["从点击转向触感", "拖动设备、按下实体按钮、抚摸毛绒与跟随呼吸，让浏览器交互重新获得身体感。"],
-    ["从日活转向小仪式", "产品不要求长时间在线，只提供 30–90 秒的情绪签到、安抚与一段可保存的回忆。"],
+    ["陪伴可以很轻，但不能没有回应", "从给纸盒狗取名、替芒果核梳毛，到为真实宠物持续消费，人们在意的并非对象是否昂贵，而是照顾动作能否换来一段可感知的关系。"],
+    ["由用户决定靠近，也保留随时离开的权利", "TAMA LINK 不用断签、衰弱或死亡惩罚召回用户。你可以随时打开、触摸、安抚，也可以随时结束；状态只留在本机。"],
+    ["把短暂互动，积累成共同记忆", "每次投喂、玩耍和安抚都留下细小变化。产品追求的不是占用时长，而是让几十秒的回应逐渐长成一段可回看的关系。"],
   ] : [
     ["FROM PUNISHMENT TO CARE", "Classic virtual pets create pressure through hunger, illness and loss. A modern companion can build return through response, memory and low-pressure care."],
     ["FROM CLICKS TO TOUCH", "Dragging the device, pressing physical buttons, brushing fur and following breath gives a browser interaction a body again."],
@@ -797,15 +831,16 @@ function ProjectRationale({ locale }: { locale: Locale }) {
       </nav>
       <header className="rationale-hero" hidden={activeTab !== "context"}>
         <p className="eyebrow">{zh ? "项目背景 · 为什么是现在" : "PROJECT CONTEXT · WHY NOW"}</p>
-        <h2>{zh ? <>怀旧不是答案。<br />被回应的需要，<span>一直都在。</span></> : <>Nostalgia is not the answer.<br />The need to be <span>answered</span> is.</>}</h2>
-        <p>{zh ? "TAMA LINK 不是把拓麻歌子的玩法搬进网页，也不是一款医疗产品。它探索的是：当硬件感、角色关系、短时减压和浏览器原生交互重新组合，数字宠物能否成为一个每天愿意打开几十秒的情绪接口。" : "TAMA LINK is neither a browser remake of Tamagotchi nor a medical product. It asks whether hardware tactility, character relationship, short decompression and browser-native interaction can become an emotional interface worth opening for a minute each day."}</p>
+        <h2>{zh ? <>年轻人寻找的，<br />不是完美关系。<br /><span>而是随时在场，<br />没有负担的回应。</span></> : <>Not a perfect relationship.<br />A response that is <span>present, bounded and light.</span></>}</h2>
+        <p>{zh ? "纸盒小狗被牵去散步，芒果核有了名字和日记，宠物消费持续增长，AI 伴侣也进入日常。这些看似分散的现象，共同指向一种轻关系需求：由自己决定何时靠近、何时退出；需要时能得到回应，又不必承担现实饲养与社交的全部压力。TAMA LINK 正是对这种‘有边界的陪伴’进行的一次交互设计实验。" : "Cardboard dogs go for walks, mango pits receive names and diaries, pet spending keeps growing, and AI companions enter daily life. Together they point to a form of bounded companionship: the user chooses when to approach or leave, can receive a response when needed, and does not inherit the full pressure of care or social obligation. TAMA LINK is an interaction-design experiment around that need."}</p>
       </header>
       <div className="context-signal" hidden={activeTab !== "context"}>
-        <div className="context-year"><small>2018</small><strong>QQ PET</strong><span>{zh ? "停止运营" : "SERVICE ENDS"}</span></div>
-        <i />
-        <div className="context-year active"><small>2026</small><strong>{zh ? "数字宠物回归" : "DIGITAL PET RETURN"}</strong><span>{zh ? "3D · 触摸反馈 · AI 性格 · 日记" : "3D · TOUCH · AI PERSONA · DIARY"}</span></div>
-        <i />
-        <div className="context-year tama"><small>NEXT</small><strong>TAMA LINK</strong><span>{zh ? "可触摸的浏览器陪伴" : "A TOUCHABLE WEB COMPANION"}</span></div>
+        <div className="context-year"><small>2022</small><strong>{zh ? "纸盒小狗" : "CARDBOARD DOGS"}</strong><span>{zh ? "取名 · 遛狗 · 宿舍社交" : "NAMING · WALKING · SOCIAL PLAY"}</span></div>
+        <div className="context-year"><small>2023</small><strong>{zh ? "养芒果核" : "MANGO-PIT PETS"}</strong><span>{zh ? "梳毛 · 写日记 · 低成本照顾" : "GROOMING · DIARY · LIGHT CARE"}</span></div>
+        <div className="context-year"><small>2024</small><strong>{zh ? "宠物消费 3002 亿元" : "RMB 300.2B PET MARKET"}</strong><span>{zh ? "宠物成为家庭成员与情绪寄托" : "FAMILY · EMOTIONAL SUPPORT"}</span></div>
+        <div className="context-year"><small>2025</small><strong>{zh ? "AI 陪伴进入日常" : "AI COMPANIONS"}</strong><span>{zh ? "即时回应，也需要明确边界" : "INSTANT RESPONSE · CLEAR LIMITS"}</span></div>
+        <div className="context-year active"><small>2026</small><strong>{zh ? "QQ 宠物回归" : "QQ PET RETURNS"}</strong><span>{zh ? "怀旧之外，重新设计陪伴" : "BEYOND NOSTALGIA"}</span></div>
+        <div className="context-year tama"><small>NEXT</small><strong>TAMA LINK</strong><span>{zh ? "可控、可触、随时在场" : "BOUNDED · TACTILE · PRESENT"}</span></div>
       </div>
       <div className="opportunity-grid" hidden={activeTab !== "context"}>
         {opportunity.map(([title, copy], index) => <article key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{copy}</p></article>)}
@@ -833,21 +868,20 @@ function ProjectRationale({ locale }: { locale: Locale }) {
       </div>
       <div className="research-notes" hidden={activeTab !== "context"}>
         <p className="eyebrow">{zh ? "研究依据 · 延伸阅读" : "RESEARCH NOTES · FURTHER READING"}</p>
-        <a href="https://app.dahecube.com/nweb/spider/20260727/828870ncdd43bef3c9.htm?artid=828870" target="_blank" rel="noreferrer"><span>01</span><b>{zh ? "QQ 宠物于 2026 年 7 月正式回归" : "QQ Pet officially returned in July 2026"}</b><small>Dahe Cube · Tencent QQ announcement</small></a>
-        <a href="https://www.iheima.com/article-400043.html" target="_blank" rel="noreferrer"><span>02</span><b>{zh ? "3D 触摸反馈、AI 性格、宠物日记与跨界面陪伴" : "3D touch, AI persona, pet diary and cross-interface companionship"}</b><small>iHeima · product feature report</small></a>
-        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8388427/" target="_blank" rel="noreferrer"><span>03</span><b>{zh ? "伴侣动物与压力情境下的情绪缓冲研究" : "Companion animals and affect under stress"}</b><small>Peer-reviewed experience sampling study</small></a>
-        <a href="https://www.sciencedirect.com/science/article/pii/S1875952125000382" target="_blank" rel="noreferrer"><span>04</span><b>{zh ? "虚拟宠物在娱乐之外的健康与学习应用综述" : "Review of virtual pets beyond entertainment"}</b><small>Entertainment Computing · 2025 review</small></a>
+        <a href="https://app.dahecube.com/nweb/spider/20260727/828870ncdd43bef3c9.htm?artid=828870" target="_blank" rel="noreferrer"><span>01</span><b>{zh ? "QQ 宠物在 2026 年回归：数字宠物重新进入公共视野" : "QQ Pet returned in 2026"}</b><small>Dahe Cube · 2026</small></a>
+        <a href="https://www.xinhuanet.com/fashion/20250612/e73e4c067fe64e80b27b3ba47f0a9254/c.html" target="_blank" rel="noreferrer"><span>02</span><b>{zh ? "2024 年城镇犬猫消费市场达到 3002 亿元" : "China's urban dog-and-cat market reached RMB 300.2B in 2024"}</b><small>新华网 · 2025</small></a>
+        <a href="https://www.jiemian.com/article/8373192.html" target="_blank" rel="noreferrer"><span>03</span><b>{zh ? "纸盒小狗从宿舍手作变成命名、遛狗与社交游戏" : "Cardboard dogs became naming, walking and social play"}</b><small>界面新闻 · 2022</small></a>
+        <a href="https://www.scmp.com/news/people-culture/trending-china/article/3229001/mango-pits-pets-young-people-china-raise-hairy-seeds-dogs-and-cats-grooming-them-even-keeping" target="_blank" rel="noreferrer"><span>04</span><b>{zh ? "年轻人为芒果核梳毛、取名并记录‘宠物日记’" : "Young people groomed, named and kept diaries for mango-pit pets"}</b><small>SCMP · 2023</small></a>
+        <a href="https://news.cctv.cn/2025/05/18/ARTIN5bUVWN2uQRmzlcHasE1250518.shtml" target="_blank" rel="noreferrer"><span>05</span><b>{zh ? "AI 伴侣提供全天候回应，也带来依赖与现实关系边界问题" : "AI companions offer constant response while raising dependency concerns"}</b><small>央视网 / 中国青年报 · 2025</small></a>
+        <a href="https://pubmed.ncbi.nlm.nih.gov/41999169/" target="_blank" rel="noreferrer"><span>06</span><b>{zh ? "青年主动建立‘有边界的支持性陪伴’" : "Young adults actively construct bounded supportive companionship"}</b><small>Health Communication · 2026</small></a>
+        <a href="https://www.sciencedirect.com/science/article/pii/S0040162524001045" target="_blank" rel="noreferrer"><span>07</span><b>{zh ? "虚拟宠物的可爱感、拟社会互动与共同现实感" : "Virtual-pet cuteness, parasocial interaction and shared reality"}</b><small>Technological Forecasting & Social Change · 2024</small></a>
       </div>
     </section>
   );
 }
 
 export default function Home() {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === "undefined") return "en";
-    const saved = window.localStorage.getItem("tama-link-locale");
-    return saved === "zh" || saved === "en" ? saved : "en";
-  });
+  const [locale, setLocale] = useState<Locale>("en");
   const [target, setTarget] = useState(0);
   const [progress, setProgress] = useState(0);
   const action = useTamaStore((s) => s.action);
@@ -862,6 +896,14 @@ export default function Home() {
     setLocale(nextLocale);
     window.localStorage.setItem("tama-link-locale", nextLocale);
   };
+
+  useEffect(() => {
+    const restoreLocale = window.setTimeout(() => {
+      const saved = window.localStorage.getItem("tama-link-locale");
+      if (saved === "zh" || saved === "en") setLocale(saved);
+    }, 0);
+    return () => window.clearTimeout(restoreLocale);
+  }, []);
 
   useEffect(() => {
     const animate = () => {
