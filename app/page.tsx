@@ -475,7 +475,8 @@ function TouchPet({ locale, action }: { locale: Locale; action: PetAction }) {
           </span>
         )}
         <span className="fur-light" />
-        <PetExpression index={visibleExpression} className="touch-expression" />
+        <PetExpression index={visibleExpression} className={`touch-expression${visibleExpression === 7 ? " is-loving" : ""}`} />
+        {visibleExpression === 7 && <PetExpression index={7} className="touch-expression love-heart-repair" />}
         <span className="touch-crosshair">+</span>
       </button>
       <div className="touch-feedback"><i /> <span>{message}</span><small>{locale === "zh" ? "触摸会改变毛绒高光与表情" : "FUR LIGHT + EXPRESSION RESPOND TO TOUCH"}</small></div>
