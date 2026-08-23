@@ -427,6 +427,7 @@ function TouchPet({ locale, action }: { locale: Locale; action: PetAction }) {
   const [expression, setExpression] = useState(2);
   const [message, setMessage] = useState(locale === "zh" ? "摸摸头、脸颊或小肚子" : "TOUCH HEAD · CHEEK · TUMMY");
   const [ripple, setRipple] = useState(0);
+  const [touchBurst, setTouchBurst] = useState({ id: 0, x: 50, y: 42, zone: "head" });
   const lastReward = useRef(0);
   const visibleExpression = action === "play" ? 9 : action === "feel" ? 7 : action === "call" ? 1 : expression;
   const touch = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -442,6 +443,7 @@ function TouchPet({ locale, action }: { locale: Locale; action: PetAction }) {
     setExpression(feedback.index);
     setMessage(locale === "zh" ? feedback.zh : feedback.en);
     setRipple((value) => value + 1);
+    setTouchBurst((value) => ({ id: value.id + 1, x: x * 100, y: y * 100, zone }));
     const now = performance.now();
     if (now - lastReward.current > 900) {
       receiveTouch();
@@ -461,6 +463,17 @@ function TouchPet({ locale, action }: { locale: Locale; action: PetAction }) {
         aria-label="Touch Meowchi to see an emotional response"
       >
         <span key={ripple} className="fur-ripple" />
+        {touchBurst.id > 0 && (
+          <span
+            key={touchBurst.id}
+            className={`touch-pixel-burst zone-${touchBurst.zone}`}
+            style={{ left: `${touchBurst.x}%`, top: `${touchBurst.y}%` }}
+            aria-hidden="true"
+          >
+            <b>{touchBurst.zone === "head" ? "PURR +1" : touchBurst.zone === "cheek" ? "MEW!" : "BOND +1"}</b>
+            {Array.from({ length: 8 }, (_, index) => <i key={index} />)}
+          </span>
+        )}
         <span className="fur-light" />
         <PetExpression index={visibleExpression} className="touch-expression" />
         <span className="touch-crosshair">+</span>
@@ -717,6 +730,7 @@ function PetRoom({ locale }: { locale: Locale }) {
   const [mode, setMode] = useState<RoomMode>("black");
   const [petPosition, setPetPosition] = useState({ x: 50, y: 76 });
   const [walking, setWalking] = useState(false);
+  const [roomFeedback, setRoomFeedback] = useState({ id: 0, fromX: 50, fromY: 76, x: 50, y: 76 });
   const walkTimer = useRef<number | null>(null);
   const lighting = mode === "black"
     ? { key: "#a887ff", fill: "#b8ff5f", label: "BLACK ROOM", bonus: "+ CURIOUS" }
@@ -725,6 +739,7 @@ function PetRoom({ locale }: { locale: Locale }) {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.max(14, Math.min(86, ((event.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(42, Math.min(82, ((event.clientY - rect.top) / rect.height) * 100));
+    setRoomFeedback((value) => ({ id: value.id + 1, fromX: petPosition.x, fromY: petPosition.y, x, y }));
     setPetPosition({ x, y });
     setWalking(true);
     if (walkTimer.current) window.clearTimeout(walkTimer.current);
@@ -756,6 +771,19 @@ function PetRoom({ locale }: { locale: Locale }) {
           <img src={walking ? "/reference/phase-three/expression-excited-cutout.png" : "/reference/phase-three/expression-happy-cutout.png"} alt="Meowchi in the selected room" />
           <i />
         </div>
+        {roomFeedback.id > 0 && (
+          <div key={roomFeedback.id} className="room-pixel-feedback" aria-hidden="true">
+            <div className="room-pixel-trail">
+              {Array.from({ length: 6 }, (_, index) => {
+                const step = (index + 1) / 7;
+                return <i key={index} style={{ left: `${roomFeedback.fromX + (roomFeedback.x - roomFeedback.fromX) * step}%`, top: `${roomFeedback.fromY + (roomFeedback.y - roomFeedback.fromY) * step}%`, "--trail-index": index } as CSSProperties} />;
+              })}
+            </div>
+            <div className="room-target-signal" style={{ left: `${roomFeedback.x}%`, top: `${roomFeedback.y}%` }}>
+              <i /><i /><i /><b>{locale === "zh" ? "收到！走这边" : "OK! THIS WAY"}</b>
+            </div>
+          </div>
+        )}
         <div className="room-badge"><i /> {lighting.label}<small>{locale === "zh" ? "45° 场景视角" : "45° MODEL SPACE"}</small></div>
         <div className="room-effect">{lighting.bonus}<small>{locale === "zh" ? (mode === "black" ? "夜晚让好奇心慢慢生长" : "日光让心情更加轻盈") : (mode === "black" ? "NIGHT CURIOSITY BOOST" : "COZY MOOD BOOST")}</small></div>
         <div className="room-walk-hint"><span>⌖</span><b>{locale === "zh" ? "点击房间，让 Meowchi 走过去" : "CLICK THE ROOM TO MOVE MEOWCHI"}</b></div>
@@ -884,18 +912,32 @@ export default function Home() {
   const [locale, setLocale] = useState<Locale>("en");
   const [target, setTarget] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [heroFeedback, setHeroFeedback] = useState(0);
+  const [heroSignal, setHeroSignal] = useState<PetAction>("idle");
   const action = useTamaStore((s) => s.action);
   const awake = useTamaStore((s) => s.awake);
   const bond = useTamaStore((s) => s.bond);
   const trigger = useTamaStore((s) => s.trigger);
   const reset = useTamaStore((s) => s.reset);
   const frame = useRef<number | null>(null);
+  const heroFeedbackTimer = useRef<number | null>(null);
   const reduced = useMemo(() => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches, []);
   const copy = UI[locale];
   const changeLocale = (nextLocale: Locale) => {
     setLocale(nextLocale);
     window.localStorage.setItem("tama-link-locale", nextLocale);
   };
+  const sendHeroSignal = (nextAction: PetAction) => {
+    setHeroFeedback((value) => value + 1);
+    setHeroSignal(nextAction);
+    if (heroFeedbackTimer.current) window.clearTimeout(heroFeedbackTimer.current);
+    heroFeedbackTimer.current = window.setTimeout(() => setHeroSignal("idle"), 1800);
+    trigger(nextAction);
+  };
+
+  useEffect(() => () => {
+    if (heroFeedbackTimer.current) window.clearTimeout(heroFeedbackTimer.current);
+  }, []);
 
   useEffect(() => {
     const restoreLocale = window.setTimeout(() => {
@@ -954,6 +996,19 @@ export default function Home() {
           <div className="scroll-cue" style={{ opacity: Math.max(0, 1 - progress * 8) }}><span>{copy.scroll}</span><b>↓</b></div>
         </div>
         <div className="signal-thread" style={{ opacity: Math.max(0, 0.38 - progress * 0.6) }} />
+        {heroSignal !== "idle" && (
+          <div key={`${heroSignal}-${heroFeedback}`} className={`hero-signal-feedback signal-${heroSignal}`} aria-hidden="true">
+            <div className="hero-pixel-field">
+              {Array.from({ length: 20 }, (_, index) => <i key={index} style={{ "--pixel-x": `${10 + ((index * 37) % 80)}%`, "--pixel-y": `${8 + ((index * 23) % 82)}%`, "--pixel-delay": `${index * 24}ms` } as CSSProperties} />)}
+            </div>
+            <div className="hero-signal-reticle"><i /><i /><i /><i /></div>
+            <div className="hero-signal-hud">
+              <small>{heroSignal === "call" ? "CARE LINK" : heroSignal === "play" ? "PLAY BURST" : "FEEL TRACE"}</small>
+              <b>{heroSignal === "call" ? "HEART SYNC" : heroSignal === "play" ? "JOY COMBO" : "MOOD READ"}</b>
+              <span>{heroSignal === "call" ? "+ BOND" : heroSignal === "play" ? "× 03" : "SOFT SIGNAL"}</span>
+            </div>
+          </div>
+        )}
         <div className="canvas-wrap"><Canvas camera={{ position: [0, 0, 8], fov: 38 }} dpr={[1, 1.6]}><Scene progress={progress} /></Canvas></div>
         <div className="device-readout" style={{ opacity: Math.max(0.2, 1 - progress * 0.7) }}>
           <small>COMPANION SIGNAL</small><b>MEOWCHI · ONLINE</b><span>BOND {bond}%</span>
@@ -962,7 +1017,7 @@ export default function Home() {
         <div className="near-hint" data-visible={progress > 0.62}><span>PRESS A BUTTON</span><b>CARE · PLAY · FEEL</b></div>
         <div className="hero-controls" data-visible={progress > 0.66}>
           {buttonMap.map((item) => (
-            <button key={item.key} onClick={() => trigger(item.key)} style={{ "--signal-color": item.color } as CSSProperties}>
+            <button key={item.key} onClick={() => sendHeroSignal(item.key)} style={{ "--signal-color": item.color } as CSSProperties}>
               <i /> <span>{item.label}<small>{item.key === "call" ? (locale === "zh" ? "照顾" : "CARE SIGNAL") : item.key === "play" ? (locale === "zh" ? "玩耍" : "HAPPY JUMP") : (locale === "zh" ? "情绪" : "SHARE A FEELING")}</small></span>
             </button>
           ))}
