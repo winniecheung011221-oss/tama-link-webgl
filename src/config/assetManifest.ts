@@ -1,31 +1,31 @@
 export const ASSETS = {
   device: {
     full: {
-      url: "/models/device/tama-device-full.glb",
+      url: "models/device/tama-device-full.glb",
       scale: 2.9,
       position: [0, -0.08, 0] as [number, number, number],
       rotation: [0, 0, 0] as [number, number, number],
     },
     buttons: {
-      call: "/models/device/buttons/button-call-green.glb",
-      play: "/models/device/buttons/button-play-yellow.glb",
-      feel: "/models/device/buttons/button-feel-purple.glb",
+      call: "models/device/buttons/button-call-green.glb",
+      play: "models/device/buttons/button-play-yellow.glb",
+      feel: "models/device/buttons/button-feel-purple.glb",
     },
   },
   pet: {
-    primary: "/models/pet/meowchi-animated-compressed.glb",
-    fallbackImage: "/reference/phase-two/pet-front.png",
+    primary: "models/pet/meowchi-animated-compressed.glb",
+    fallbackImage: "reference/phase-two/pet-front.png",
     scale: 3.15,
     position: [0, -1.55, 0] as [number, number, number],
   },
   props: {
-    strawberry: "/models/props/food-strawberry.glb",
-    pudding: "/models/props/food-pudding.glb",
-    star: "/models/props/charm-star.glb",
+    strawberry: "models/props/food-strawberry.glb",
+    pudding: "models/props/food-pudding.glb",
+    star: "models/props/charm-star.glb",
   },
   scenes: {
-    petHomeBlack: "/models/scenes/pet-home-black.glb",
-    petHomeWhite: "/models/scenes/pet-home-white.glb",
+    petHomeBlack: "models/scenes/pet-home-black.glb",
+    petHomeWhite: "models/scenes/pet-home-white.glb",
   },
 } as const;
 

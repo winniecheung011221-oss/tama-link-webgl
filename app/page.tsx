@@ -192,7 +192,7 @@ function PetExpression({ index, className = "" }: { index: number; className?: s
   return (
     <span
       className={`pet-expression ${className}`}
-      style={{ backgroundImage: `url("/reference/phase-three/expression-${expression}-cutout.png")` }}
+      style={{ backgroundImage: `url("reference/phase-three/expression-${expression}-cutout.png")` }}
       aria-hidden="true"
     />
   );
@@ -244,7 +244,7 @@ function StarGame({ locale, onClose }: { locale: Locale; onClose: () => void }) 
           ) : (
             <div className="game-result"><PetExpression index={score >= 8 ? 1 : 0} className="result-expression" /><strong>{score}</strong><span>{locale === "zh" ? "颗星星到手" : "STARS CAUGHT"}</span><small>+{score * 12} {locale === "zh" ? "星尘 · 活力" : "stardust · fun"} +{score * 2}</small><button onClick={onClose}>{locale === "zh" ? "回到 Meowchi 身边" : "RETURN TO MEOWCHI"}</button></div>
           )}
-          <Image src="/reference/phase-three/expression-playful-cutout.png" alt="" width={1024} height={1024} />
+          <Image src="reference/phase-three/expression-playful-cutout.png" alt="" width={1024} height={1024} />
         </div>
         <footer>{locale === "zh" ? "星星会不断换位置 · 每局 15 秒" : "CLICK / TAP THE STAR BEFORE IT JUMPS · 15 SECOND ROUND"}</footer>
       </div>
@@ -254,8 +254,8 @@ function StarGame({ locale, onClose }: { locale: Locale; onClose: () => void }) 
 
 function FeedChallenge({ locale, onComplete, onClose }: { locale: Locale; onComplete: (quality: number) => void; onClose: () => void }) {
   const foods = [
-    { name: "STRAWBERRY", note: "Bright + playful", artwork: "/reference/phase-three/food-strawberry-slice.png" },
-    { name: "PUDDING", note: "Soft + comforting", artwork: "/reference/phase-three/food-pudding.png" },
+    { name: "STRAWBERRY", note: "Bright + playful", artwork: "reference/phase-three/food-strawberry-slice.png" },
+    { name: "PUDDING", note: "Soft + comforting", artwork: "reference/phase-three/food-pudding.png" },
   ];
   const [selected, setSelected] = useState<(typeof foods)[number] | null>(null);
   const [quality, setQuality] = useState<number | null>(null);
@@ -331,7 +331,7 @@ function CleanChallenge({ locale, onComplete, onClose }: { locale: Locale; onCom
         <div className="care-game-hud"><span>{locale === "zh" ? "剩余时间" : "TIME"} <b>{String(time).padStart(2, "0")}</b></span><span>{locale === "zh" ? "已清理" : "CLEARED"} <b>{cleanSpots.length - remaining.length}/{cleanSpots.length}</b></span></div>
         <div className="clean-field">
           <div className="soap-bubbles" aria-hidden="true">{[0,1,2,3,4,5,6].map((bubble) => <i key={bubble} />)}</div>
-          <Image src="/reference/phase-three/expression-happy-cutout.png" alt="Meowchi" width={1024} height={1024} />
+          <Image src="reference/phase-three/expression-happy-cutout.png" alt="Meowchi" width={1024} height={1024} />
           {remaining.map((index) => <button key={index} className="fluff-knot" style={{ left: `${cleanSpots[index].left}%`, top: `${cleanSpots[index].top}%` }} onClick={() => clearSpot(index)} aria-label="Clean fluff knot"><i /></button>)}
           {quality !== null && <div className="challenge-result floating"><strong>{locale === "zh" ? (remaining.length === 0 ? "毛毛又软又蓬松" : "还有几处没梳开") : (remaining.length === 0 ? "FUR FLUFFY AND BRIGHT!" : "PARTIAL GROOM")}</strong><small>{locale === "zh" ? "奖励加成" : "REWARD"} ×{quality.toFixed(2)}</small><button onClick={() => onComplete(quality)}>{locale === "zh" ? "清洁完成" : "COMPLETE CLEAN"}</button></div>}
         </div>
@@ -665,7 +665,7 @@ function CareHub({ locale }: { locale: Locale }) {
         </header>
         {[1, 3, 5].map((threshold, index) => {
           const unlocked = memories >= threshold;
-          const memoryImages = ["/reference/phase-three/expression-curious-cutout.png", "/reference/phase-three/food-pudding.png", "/reference/phase-three/expression-loving-cutout.png"];
+          const memoryImages = ["reference/phase-three/expression-curious-cutout.png", "reference/phase-three/food-pudding.png", "reference/phase-three/expression-loving-cutout.png"];
           const memoryCopies = locale === "zh"
             ? ["第一次触摸屏幕时，它把那次回应记成了一点微光。", "那天很晚，你们分着吃完一份布丁，房间里只剩安静的呼吸声。", "亲密度够高时，房间会多出一座只属于你们的秘密花园。"]
             : ["Your first touch became a tiny light it chose to keep.", "It was late when you shared pudding and listened to the room breathe.", "With enough bond, the room grows a secret garden for the two of you."];
@@ -679,7 +679,7 @@ function CareHub({ locale }: { locale: Locale }) {
           );
         })}
       </div>
-      {memoryOpen !== null && <div className="game-overlay" role="dialog" aria-modal="true"><div className="memory-modal"><button onClick={() => setMemoryOpen(null)} aria-label="Close memory">×</button><img src={["/reference/phase-three/expression-curious-cutout.png", "/reference/phase-three/food-pudding.png", "/reference/phase-three/expression-loving-cutout.png"][memoryOpen]} alt="" /><p className="eyebrow">{locale === "zh" ? "回忆" : "MEMORY"} 0{memoryOpen + 1}</p><h3>{locale === "zh" ? ["第一次回应", "一份深夜布丁", "慢慢长大的房间"][memoryOpen] : ["THE FIRST ANSWER", "MIDNIGHT PUDDING", "A ROOM THAT GROWS"][memoryOpen]}</h3></div></div>}
+      {memoryOpen !== null && <div className="game-overlay" role="dialog" aria-modal="true"><div className="memory-modal"><button onClick={() => setMemoryOpen(null)} aria-label="Close memory">×</button><img src={["reference/phase-three/expression-curious-cutout.png", "reference/phase-three/food-pudding.png", "reference/phase-three/expression-loving-cutout.png"][memoryOpen]} alt="" /><p className="eyebrow">{locale === "zh" ? "回忆" : "MEMORY"} 0{memoryOpen + 1}</p><h3>{locale === "zh" ? ["第一次回应", "一份深夜布丁", "慢慢长大的房间"][memoryOpen] : ["THE FIRST ANSWER", "MIDNIGHT PUDDING", "A ROOM THAT GROWS"][memoryOpen]}</h3></div></div>}
       {gameOpen && <StarGame locale={locale} onClose={() => setGameOpen(false)} />}
       {foodOpen && <FeedChallenge locale={locale} onClose={() => setFoodOpen(false)} onComplete={(quality) => completeCare("feed", quality)} />}
       {comfortOpen && <ComfortChallenge locale={locale} onClose={() => setComfortOpen(false)} onComplete={(quality) => completeCare("comfort", quality)} />}
@@ -772,7 +772,7 @@ function PetRoom({ locale }: { locale: Locale }) {
           <Environment preset={mode === "black" ? "night" : "apartment"} environmentIntensity={mode === "black" ? 0.28 : 0.48} />
         </Canvas>
         <div className={`room-pet-agent ${walking ? "walking" : ""}`} style={{ left: `${petPosition.x}%`, top: `${petPosition.y}%` }}>
-          <img src={walking ? "/reference/phase-three/expression-excited-cutout.png" : "/reference/phase-three/expression-happy-cutout.png"} alt="Meowchi in the selected room" />
+          <img src={walking ? "reference/phase-three/expression-excited-cutout.png" : "reference/phase-three/expression-happy-cutout.png"} alt="Meowchi in the selected room" />
           <i />
         </div>
         {roomFeedback.id > 0 && (
@@ -812,7 +812,7 @@ function ProductStory({ locale }: { locale: Locale }) {
         </div>
       </div>
       <div className="device-gallery">
-        <img src="/reference/phase-two/device-back-reference.png" alt={locale === "zh" ? "TAMA LINK 透明设备背面结构" : "TAMA LINK transparent device back view"} />
+        <img src="reference/phase-two/device-back-reference.png" alt={locale === "zh" ? "TAMA LINK 透明设备背面结构" : "TAMA LINK transparent device back view"} />
         <div className="gallery-label"><span>{locale === "zh" ? "设备背面 · 结构研究" : "360° OBJECT STUDY"}</span><small>{locale === "zh" ? "透明外壳 · 内部结构 · 可更换电池仓" : "TRANSPARENT SHELL · INTERNAL LAYERS"}</small></div>
       </div>
     </section>
@@ -929,7 +929,7 @@ function AuthorContact({ locale }: { locale: Locale }) {
           <span>{zh ? "电话" : "PHONE"}</span><b>139 0306 4594</b><i aria-hidden="true" />
         </a>
         <div className="wechat-contact">
-          <div className="wechat-qr"><img src="/reference/contact/wechat-contact.png" alt={zh ? "作者微信二维码" : "Author WeChat QR code"} /></div>
+          <div className="wechat-qr"><img src="reference/contact/wechat-contact.png" alt={zh ? "作者微信二维码" : "Author WeChat QR code"} /></div>
           <div><span>WECHAT</span><b>{zh ? "扫码添加微信" : "Scan to connect on WeChat"}</b><small>{zh ? "请备注 TAMA LINK" : "MENTION TAMA LINK"}</small></div>
         </div>
       </div>

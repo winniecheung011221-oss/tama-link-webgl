@@ -10,7 +10,7 @@ export const SCENE = {
   pressMs: 220,
   actionMs: 1150,
   modelPaths: {
-    device: "/models/device/device.glb",
-    pet: "/models/pet/pet.glb",
+    device: "models/device/device.glb",
+    pet: "models/pet/pet.glb",
   },
 } as const;

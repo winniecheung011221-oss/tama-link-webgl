@@ -37,8 +37,10 @@ yarn-error.log*
 # typescript
 next-env.d.ts
 /dist/
+/dist-pages/
 /.wrangler/
 /outputs/
 /work/
 /.openai/*.tar.gz
 /.codex-site*.tar.gz
+/tama-link-site*.tar.gz
