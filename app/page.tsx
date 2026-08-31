@@ -912,32 +912,6 @@ function ProjectRationale({ locale }: { locale: Locale }) {
   );
 }
 
-function AuthorContact({ locale }: { locale: Locale }) {
-  const zh = locale === "zh";
-  return (
-    <footer className="author-contact" id="contact">
-      <div className="contact-intro">
-        <span className="contact-status"><i /> {zh ? "联系作者" : "AUTHOR CONTACT"}</span>
-        <h2>{zh ? <>想继续聊聊<br /><em>陪伴、触摸和 AI？</em></> : <>Let&apos;s talk about<br /><em>care, touch and AI.</em></>}</h2>
-        <p>{zh ? "欢迎交流数字宠物、情绪交互、WebGL 体验，以及用 AI Coding 做设计的过程。" : "Open to conversations about digital companions, emotional interaction, WebGL experiences and designing with AI coding."}</p>
-      </div>
-      <div className="contact-details">
-        <a href="mailto:1741499328@qq.com" className="contact-line">
-          <span>EMAIL</span><b>1741499328@qq.com</b><i aria-hidden="true" />
-        </a>
-        <a href="tel:+8613903064594" className="contact-line">
-          <span>{zh ? "电话" : "PHONE"}</span><b>139 0306 4594</b><i aria-hidden="true" />
-        </a>
-        <div className="wechat-contact">
-          <div className="wechat-qr"><img src="reference/contact/wechat-contact.png" alt={zh ? "作者微信二维码" : "Author WeChat QR code"} /></div>
-          <div><span>WECHAT</span><b>{zh ? "扫码添加微信" : "Scan to connect on WeChat"}</b><small>{zh ? "请备注 TAMA LINK" : "MENTION TAMA LINK"}</small></div>
-        </div>
-      </div>
-      <div className="contact-footer"><span>TAMA LINK · CARE IS A SIGNAL</span><span>© 2026 · DESIGNED WITH HUMAN JUDGMENT + AI CODING</span></div>
-    </footer>
-  );
-}
-
 export default function Home() {
   const [locale, setLocale] = useState<Locale>("en");
   const [target, setTarget] = useState(0);
@@ -1070,7 +1044,6 @@ export default function Home() {
           {buttonMap.map((item, index) => <article key={item.key}><span>0{index + 1}</span><b style={{ color: item.color }}>{item.label}</b><p>{locale === "zh" ? ["照顾当下", "一起玩一会儿", "看看它怎么了"][index] : ["Respond to a need", "Release tension", "Read a feeling"][index]}</p></article>)}
         </div>
       </section>
-      <AuthorContact locale={locale} />
     </main>
   );
 }
